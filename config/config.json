@@ -1,0 +1,36 @@
+{
+    "envPrefix": "dnspoc",
+    "location": "centralus",
+    "adminUsername": "azureuser",
+    "sshPublicKey": "YOUR_SSH_PUBLIC_KEY_HERE",
+    "storageAccountName": "",
+    "resourceGroups": {
+        "hub": "dnspoc-rg-hub",
+        "spoke": "dnspoc-rg-spoke",
+        "onprem": "dnspoc-rg-onprem"
+    },
+    "networking": {
+        "hub": {
+            "addressPrefix": "10.0.0.0/16",
+            "subnets": {
+                "resolverInbound": "10.0.0.0/28",
+                "resolverOutbound": "10.0.0.16/28",
+                "default": "10.0.1.0/24"
+            }
+        },
+        "spoke": {
+            "addressPrefix": "10.1.0.0/16",
+            "subnets": {
+                "default": "10.1.0.0/24",
+                "privateEndpoints": "10.1.1.0/24"
+            }
+        },
+        "onprem": {
+            "addressPrefix": "10.255.0.0/16",
+            "subnets": {
+                "default": "10.255.0.0/24"
+            },
+            "dnsServerIP": "10.255.0.10"
+        }
+    }
+}

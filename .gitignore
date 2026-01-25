@@ -1,0 +1,35 @@
+# .gitignore for DNS POC
+
+# Azure deployment outputs (contain resource IDs)
+config/*-outputs.json
+
+# PowerShell output
+*.log
+
+# Backup files
+*.bak
+*.backup
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Terraform (if added later)
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# SSH keys (never commit)
+*.pem
+*.key
+id_rsa*
+
+# Azure CLI cache
+.azure/
