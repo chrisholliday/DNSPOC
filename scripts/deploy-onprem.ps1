@@ -19,10 +19,10 @@ param(
     [string]$ConfigPath = "$PSScriptRoot/../config/config.json",
     
     [Parameter(Mandatory = $false)]
-    [string]$HubOutputsPath = "$PSScriptRoot/../config/hub-outputs.json",
+    [string]$HubOutputsPath = "$PSScriptRoot/../.outputs/hub-outputs.json",
     
     [Parameter(Mandatory = $false)]
-    [string]$Location = "eastus"
+    [string]$Location = ""
 )
 
 $ErrorActionPreference = 'Stop'
@@ -51,6 +51,15 @@ try {
     }
     $config = Get-Content $ConfigPath | ConvertFrom-Json
     Write-Success "Configuration loaded"
+    
+    # Use location from config.json if not provided via parameter
+    if ([string]::IsNullOrWhiteSpace($Location)) {
+        $Location = $config.location
+        Write-Step "Using location from config.json: $Location"
+    }
+    else {
+        Write-Step "Using specified location: $Location"
+    }
 
     # Load hub outputs
     Write-Step "Loading hub deployment outputs"
@@ -103,11 +112,16 @@ try {
     }
 
     # Save outputs to file
-    $outputsPath = "$PSScriptRoot/../config/onprem-outputs.json"
+    $outputsDir = "$PSScriptRoot/../.outputs"
+    if (-not (Test-Path $outputsDir)) {
+        New-Item -ItemType Directory -Path $outputsDir -Force | Out-Null
+    }
+    $outputsPath = Join-Path $outputsDir "onprem-outputs.json"
     $onpremDeployment.Outputs | ConvertTo-Json -Depth 10 | Out-File $outputsPath
     Write-Success "On-prem outputs saved to: $outputsPath"
 
     Write-Host "`n✓ On-prem deployment completed successfully!" -ForegroundColor Green
+    exit 0
 
 } catch {
     Write-ErrorMessage "Deployment failed: $_"

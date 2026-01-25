@@ -11,7 +11,6 @@ param vmSize string = 'Standard_B1s'
 param adminUsername string
 
 @description('SSH public key for authentication')
-@secure()
 param sshPublicKey string
 
 @description('Subnet ID for the VM NIC')

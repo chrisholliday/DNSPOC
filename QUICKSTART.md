@@ -45,19 +45,45 @@ Edit `config/config.json`:
 
 - **SSH Public Key**: If you pre-generated a key with `New-SSHKeyPair.ps1`, copy the public key content from your `.ssh/dnspoc.pub` file into this field. Otherwise, the deployment script will display the key and ask you to paste it here.
 - **Storage Account Name**: Leave empty (`""`) — a unique name will be auto-generated during deployment
+- **Location**: (Optional) Change from `centralus` to your preferred Azure region if desired. Central US is less congested and lower-latency for many users, but you can override this.
 
-**Note:** Storage account names must be globally unique. The deployment script will automatically generate and validate a unique name for you.
+**Notes:**
+
+- Storage account names must be globally unique. The deployment script will automatically generate and validate a unique name for you.
+- To override the location during deployment, pass `-Location "yourregion"` to the deploy script
 
 ## 4. Deploy
 
 ```powershell
-# Deploy everything
+# Deploy everything (uses location from config.json)
 ./scripts/deploy-all.ps1
+
+# Or override the location
+./scripts/deploy-all.ps1 -Location "eastus"
 ```
 
 **Duration:** ~15-20 minutes
 
-## 5. Test
+## 5. Validate Deployment
+
+After deployment completes, validate that all resources were created successfully:
+
+```powershell
+# Run validation checks
+./scripts/Validate-Deployment.ps1
+```
+
+This will verify:
+
+- All resource groups were created
+- VNets and subnets are in place
+- DNS Resolver with inbound/outbound endpoints
+- Private DNS zones are linked
+- VMs are created and running
+- Storage account exists
+- VNet peering is configured
+
+## 6. Test
 
 ```powershell
 # Get test instructions
@@ -90,6 +116,9 @@ nslookup microsoft.com
 ## Common Commands
 
 ```powershell
+# Validate deployment after deploy-all.ps1
+./scripts/Validate-Deployment.ps1
+
 # Deploy only hub
 ./scripts/deploy-hub.ps1
 
@@ -101,6 +130,9 @@ nslookup microsoft.com
 
 # Redeploy with skip flags
 ./scripts/deploy-all.ps1 -SkipHub
+
+# Run DNS tests
+./scripts/test-dns.ps1
 
 # Force teardown without confirmation
 ./scripts/teardown.ps1 -Force

@@ -22,7 +22,6 @@ param hubResourceGroupName string
 param vmPrivateDnsZoneId string
 
 @description('SSH public key for VMs')
-@secure()
 param sshPublicKey string
 
 @description('Admin username for VMs')

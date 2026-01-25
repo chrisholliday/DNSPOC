@@ -34,15 +34,18 @@
 2. **Edit `config/config.json`:**
    - Update `sshPublicKey` with your public key content (from `~/.ssh/dnspoc.pub`), or leave as `YOUR_SSH_PUBLIC_KEY_HERE` to be prompted during deployment
    - Leave `storageAccountName` empty (`""`) — a unique name will be auto-generated during the spoke deployment
-   - Optionally change `location` for your preferred region
+   - Change `location` to your preferred Azure region (defaults to `centralus` which is less congested; consider using for better availability)
 
 ## Deployment
 
 ### Quick Start - Full Deployment
 
 ```powershell
-# Deploy everything
+# Deploy everything (uses location from config.json)
 ./scripts/deploy-all.ps1
+
+# Or override the location from config.json
+./scripts/deploy-all.ps1 -Location "eastus"
 ```
 
 ### Step-by-Step Deployment
@@ -59,6 +62,9 @@
 
 # 4. Configure DNS Forwarding
 ./scripts/configure-dns-forwarding.ps1
+
+# To override location in any script:
+./scripts/deploy-hub.ps1 -Location "westus"
 ```
 
 ### Partial Deployment
@@ -67,6 +73,25 @@
 # Skip already deployed components
 ./scripts/deploy-all.ps1 -SkipHub -SkipSpoke
 ```
+
+## Validation
+
+After deployment completes, validate that all resources were created successfully:
+
+```powershell
+# Run comprehensive deployment validation
+./scripts/Validate-Deployment.ps1
+```
+
+This script checks:
+
+- Resource groups exist
+- VNets and subnets are configured correctly
+- DNS Resolver with inbound/outbound endpoints
+- Private DNS zones created and linked
+- VMs deployed and running
+- Storage account exists with correct settings
+- VNet peering configured correctly
 
 ## Testing
 
@@ -113,8 +138,11 @@ DNSPOC/
 │   └── teardown.ps1
 ├── config/                     # Configuration files
 │   ├── config.json             # Main configuration
-│   ├── README.md               # Config instructions
-│   └── *-outputs.json          # Deployment outputs (generated)
+│   └── README.md               # Config instructions
+├── .outputs/                   # Deployment outputs (generated, not in git)
+│   ├── hub-outputs.json
+│   ├── spoke-outputs.json
+│   └── onprem-outputs.json
 └── Readme.md                   # Project overview
 ```
 
@@ -124,7 +152,7 @@ DNSPOC/
 
 - Check Azure connection: `Get-AzContext`
 - Verify configuration: Review `config/config.json`
-- Check output files: `config/*-outputs.json`
+- Check output files: `.outputs/*-outputs.json` (only exist after successful deployment)
 
 ### DNS Resolution Issues
 

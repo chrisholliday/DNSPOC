@@ -136,9 +136,9 @@ try {
     # Clean up output files
     Write-Step "Cleaning up output files"
     $outputFiles = @(
-        "$PSScriptRoot/../config/hub-outputs.json",
-        "$PSScriptRoot/../config/spoke-outputs.json",
-        "$PSScriptRoot/../config/onprem-outputs.json"
+        "$PSScriptRoot/../.outputs/hub-outputs.json",
+        "$PSScriptRoot/../.outputs/spoke-outputs.json",
+        "$PSScriptRoot/../.outputs/onprem-outputs.json"
     )
     
     foreach ($file in $outputFiles) {

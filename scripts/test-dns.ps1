@@ -57,9 +57,9 @@ try {
     }
     $config = Get-Content $ConfigPath | ConvertFrom-Json
     
-    $hubOutputsPath = "$PSScriptRoot/../config/hub-outputs.json"
-    $spokeOutputsPath = "$PSScriptRoot/../config/spoke-outputs.json"
-    $onpremOutputsPath = "$PSScriptRoot/../config/onprem-outputs.json"
+    $hubOutputsPath = "$PSScriptRoot/../.outputs/hub-outputs.json"
+    $spokeOutputsPath = "$PSScriptRoot/../.outputs/spoke-outputs.json"
+    $onpremOutputsPath = "$PSScriptRoot/../.outputs/onprem-outputs.json"
     
     if (-not (Test-Path $hubOutputsPath) -or -not (Test-Path $spokeOutputsPath) -or -not (Test-Path $onpremOutputsPath)) {
         throw "Deployment output files not found. Please run deploy-all.ps1 first."

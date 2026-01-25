@@ -37,9 +37,9 @@ try {
     # Load configuration
     Write-Step "Loading configuration"
     $config = Get-Content $ConfigPath | ConvertFrom-Json
-    $hubOutputs = Get-Content "$PSScriptRoot/../config/hub-outputs.json" | ConvertFrom-Json
-    $spokeOutputs = Get-Content "$PSScriptRoot/../config/spoke-outputs.json" | ConvertFrom-Json
-    $onpremOutputs = Get-Content "$PSScriptRoot/../config/onprem-outputs.json" | ConvertFrom-Json
+    $hubOutputs = Get-Content "$PSScriptRoot/../.outputs/hub-outputs.json" | ConvertFrom-Json
+    $spokeOutputs = Get-Content "$PSScriptRoot/../.outputs/spoke-outputs.json" | ConvertFrom-Json
+    $onpremOutputs = Get-Content "$PSScriptRoot/../.outputs/onprem-outputs.json" | ConvertFrom-Json
     Write-Success "Configuration loaded"
 
     $hubRgName = $config.resourceGroups.hub

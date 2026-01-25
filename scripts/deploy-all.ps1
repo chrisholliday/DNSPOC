@@ -23,7 +23,7 @@ param(
     [string]$ConfigPath = "$PSScriptRoot/../config/config.json",
     
     [Parameter(Mandatory = $false)]
-    [string]$Location = 'eastus',
+    [string]$Location = '',
     
     [Parameter(Mandatory = $false)]
     [switch]$SkipHub,
@@ -150,6 +150,15 @@ try {
     # Load config to check SSH public key
     Write-Step 'Validating SSH public key in configuration'
     $config = Get-Content $ConfigPath | ConvertFrom-Json
+    
+    # Use location from config.json if not provided via parameter
+    if ([string]::IsNullOrWhiteSpace($Location)) {
+        $Location = $config.location
+        Write-Success "Using location from config.json: $Location"
+    }
+    else {
+        Write-Success "Using specified location: $Location"
+    }
     
     if ([string]::IsNullOrWhiteSpace($config.sshPublicKey) -or $config.sshPublicKey -eq 'YOUR_SSH_PUBLIC_KEY_HERE') {
         Write-Host "`n⚠️  SSH public key not configured in config/config.json" -ForegroundColor Yellow

@@ -5,12 +5,14 @@
 1. **SSH Key**: Replace `YOUR_SSH_PUBLIC_KEY_HERE` in `config.json` with your actual SSH public key
 
    **Windows:**
+
    ```powershell
    ssh-keygen -t rsa -b 4096 -f "$env:USERPROFILE\.ssh\dnspoc"
    Get-Content "$env:USERPROFILE\.ssh\dnspoc.pub"
    ```
 
    **macOS / Linux:**
+
    ```powershell
    ssh-keygen -t rsa -b 4096 -f "$HOME/.ssh/dnspoc"
    Get-Content "$HOME/.ssh/dnspoc.pub"
@@ -49,8 +51,8 @@
 
 After each deployment script runs, outputs are saved to:
 
-- `hub-outputs.json` - Hub infrastructure details
-- `spoke-outputs.json` - Spoke infrastructure details
-- `onprem-outputs.json` - On-prem infrastructure details
+- `../.outputs/hub-outputs.json` - Hub infrastructure details
+- `../.outputs/spoke-outputs.json` - Spoke infrastructure details
+- `../.outputs/onprem-outputs.json` - On-prem infrastructure details
 
-These files are automatically used by subsequent deployment scripts.
+These files contain sensitive information (resource IDs and references) and are automatically ignored by git.

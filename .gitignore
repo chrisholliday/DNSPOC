@@ -1,7 +1,8 @@
 # .gitignore for DNS POC
 
-# Azure deployment outputs (contain resource IDs)
-config/*-outputs.json
+# Azure deployment outputs (contain resource IDs and secrets)
+.outputs/
+.outputs/*
 
 # PowerShell output
 *.log

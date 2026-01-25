@@ -20,10 +20,10 @@ param(
     [string]$ConfigPath = "$PSScriptRoot/../config/config.json",
     
     [Parameter(Mandatory = $false)]
-    [string]$HubOutputsPath = "$PSScriptRoot/../config/hub-outputs.json",
+    [string]$HubOutputsPath = "$PSScriptRoot/../.outputs/hub-outputs.json",
     
     [Parameter(Mandatory = $false)]
-    [string]$Location = 'eastus'
+    [string]$Location = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -117,8 +117,15 @@ try {
     if (-not $context) {
         throw 'Not logged in to Azure. Please run Connect-AzAccount first.'
     }
-    Write-Success "Connected to Azure subscription: $($context.Subscription.Name)"
-
+    Write-Success "Connected to Azure subscription: $($context.Subscription.Name)"    
+    # Use location from config.json if not provided via parameter
+    if ([string]::IsNullOrWhiteSpace($Location)) {
+        $Location = $config.location
+        Write-Step "Using location from config.json: $Location"
+    }
+    else {
+        Write-Step "Using specified location: $Location"
+    }
     # Validate or generate storage account name
     $storageAccountName = $config.storageAccountName
     $isPlaceholder = ($storageAccountName -eq 'YOUR_STORAGE_ACCOUNT_NAME_HERE' -or 
@@ -188,11 +195,16 @@ try {
     }
 
     # Save outputs to file
-    $outputsPath = "$PSScriptRoot/../config/spoke-outputs.json"
+    $outputsDir = "$PSScriptRoot/../.outputs"
+    if (-not (Test-Path $outputsDir)) {
+        New-Item -ItemType Directory -Path $outputsDir -Force | Out-Null
+    }
+    $outputsPath = Join-Path $outputsDir 'spoke-outputs.json'
     $spokeDeployment.Outputs | ConvertTo-Json -Depth 10 | Out-File $outputsPath
     Write-Success "Spoke outputs saved to: $outputsPath"
 
     Write-Host "`n✓ Spoke deployment completed successfully!" -ForegroundColor Green
+    exit 0
 
 }
 catch {
