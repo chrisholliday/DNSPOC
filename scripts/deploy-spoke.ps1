@@ -178,7 +178,9 @@ try {
         -hubVnetName $hubOutputs.hubVnetName.value `
         -hubResourceGroupName $config.resourceGroups.hub `
         -blobPrivateDnsZoneId $hubOutputs.blobPrivateDnsZoneId.value `
+        -blobPrivateDnsZoneName $hubOutputs.blobPrivateDnsZoneName.value `
         -vmPrivateDnsZoneId $hubOutputs.vmPrivateDnsZoneId.value `
+        -vmPrivateDnsZoneName $hubOutputs.vmPrivateDnsZoneName.value `
         -sshPublicKey $config.sshPublicKey `
         -adminUsername $config.adminUsername `
         -storageAccountName $storageAccountName `

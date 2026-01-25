@@ -2,7 +2,7 @@
     "envPrefix": "dnspoc",
     "location": "centralus",
     "adminUsername": "azureuser",
-    "sshPublicKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDlreoqgKRHg6RfLzY2A7IIrwn2jfDuVkRAhR7pN19OmUxAjbiybP8JWwqfOSNdfDhHQGZRbpjYaOli2VZmEseH0xr2QW9JyUsApRQxO2WSQBIoDlRDw3w6Q8obWaYzDqAeXDzj9CJ6qjFvQQFgb3a0GP+zrefhdoFDJn2SA8Ak41EdOntswTVqLvxxGcNmhxn65OOvqSo1NnZlAa3+/jSACbCeZPoKwmIKRJNEZciH6C6w7sJj2rVr1G6E/Rh+3L8v95degHl+JzE1gnk21Sc1Qzow83T1446DeqJt7SgNtS9ZG5blOiE5INmvJXM5g/iqcRu+s4Z+5wpSsDU8NjPvpYo0TszYKGBqUIvzKEvfxZ6jPAfl7PlvquRZplINI2Al2amDp0EXEhth80LMFu39WB7hdqV4FZeUJBosfa06fV4wEIFHDCCJ/gcwsC8ZN1QXbDg1ARP8GatkKXiq8UMj2nWcN1T7M66bsFDKrkz40nrjtTzrLH0oPbyE2Q4FcKCnA64pHEoSN7cB34IYpiTudlIcOfiObNk6QS/5qFFl3m0E+eKqgaoY3D9AMuHGlgG+hsM9JCnNBToKcxOrNr6rQ99gOVoF+dF2JcwjGG4Yk11iQQ0hv5MrlFGMtd+TceIcPZVMPbe2C/eBO1t7ZK/AvTuSxNv44SBhmteSXlyazw== dnspoc-chriss-mbp.lan",
+    "sshPublicKey": "YOUR_SSH_PUBLIC_KEY_HERE",
     "storageAccountName": "",
     "resourceGroups": {
         "hub": "dnspoc-rg-hub",

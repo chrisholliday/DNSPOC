@@ -21,8 +21,14 @@ param hubResourceGroupName string
 @description('Blob private DNS zone ID')
 param blobPrivateDnsZoneId string
 
+@description('Blob private DNS zone name')
+param blobPrivateDnsZoneName string
+
 @description('VM private DNS zone ID')
 param vmPrivateDnsZoneId string
+
+@description('VM private DNS zone name')
+param vmPrivateDnsZoneName string
 
 @description('SSH public key for VMs')
 param sshPublicKey string
@@ -117,7 +123,7 @@ module spokeBlobDnsLink '../modules/private-dns-zone.bicep' = {
   name: 'deploy-spoke-blob-dns-link'
   scope: resourceGroup(hubResourceGroupName)
   params: {
-    zoneName: reference(blobPrivateDnsZoneId, '2020-06-01').name
+    zoneName: blobPrivateDnsZoneName
     tags: tags
     vnetLinks: [
       {
@@ -133,7 +139,7 @@ module spokeVmDnsLink '../modules/private-dns-zone.bicep' = {
   name: 'deploy-spoke-vm-dns-link'
   scope: resourceGroup(hubResourceGroupName)
   params: {
-    zoneName: reference(vmPrivateDnsZoneId, '2020-06-01').name
+    zoneName: vmPrivateDnsZoneName
     tags: tags
     vnetLinks: [
       {

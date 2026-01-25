@@ -1,8 +1,25 @@
 # Configuration Instructions
 
+## Initial Setup
+
+1. **Create your config.json from the template**
+
+   ```powershell
+   # Copy the example configuration file
+   Copy-Item config/config.json.example config/config.json
+   ```
+
+   Note: `config.json` is excluded from git to keep your SSH public key private.
+
 ## Before Deployment
 
 1. **SSH Key**: Replace `YOUR_SSH_PUBLIC_KEY_HERE` in `config.json` with your actual SSH public key
+
+   **Automatic (Recommended):**
+
+   The deployment script will detect if your SSH key is missing and offer to generate one automatically.
+
+   **Manual:**
 
    **Windows:**
 

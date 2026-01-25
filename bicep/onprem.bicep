@@ -21,6 +21,9 @@ param hubResourceGroupName string
 @description('VM private DNS zone ID')
 param vmPrivateDnsZoneId string
 
+@description('VM private DNS zone name')
+param vmPrivateDnsZoneName string
+
 @description('SSH public key for VMs')
 param sshPublicKey string
 
@@ -122,7 +125,7 @@ module onpremVmDnsLink '../modules/private-dns-zone.bicep' = {
   name: 'deploy-onprem-vm-dns-link'
   scope: resourceGroup(hubResourceGroupName)
   params: {
-    zoneName: reference(vmPrivateDnsZoneId, '2020-06-01').name
+    zoneName: vmPrivateDnsZoneName
     tags: tags
     vnetLinks: [
       {

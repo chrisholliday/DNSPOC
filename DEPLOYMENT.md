@@ -31,10 +31,19 @@
    ./scripts/New-SSHKeyPair.ps1
    ```
 
-2. **Edit `config/config.json`:**
+2. **Create your configuration file:**
+
+   ```powershell
+   # Copy the example config to create your own
+   Copy-Item config/config.json.example config/config.json
+   ```
+
+3. **Edit `config/config.json`:**
    - Update `sshPublicKey` with your public key content (from `~/.ssh/dnspoc.pub`), or leave as `YOUR_SSH_PUBLIC_KEY_HERE` to be prompted during deployment
    - Leave `storageAccountName` empty (`""`) — a unique name will be auto-generated during the spoke deployment
    - Change `location` to your preferred Azure region (defaults to `centralus` which is less congested; consider using for better availability)
+
+   **Note:** `config.json` is excluded from git to prevent committing your SSH public key. Always copy from `config.json.example` when setting up a new clone.
 
 ## Deployment
 
@@ -137,7 +146,8 @@ DNSPOC/
 │   ├── test-dns.ps1
 │   └── teardown.ps1
 ├── config/                     # Configuration files
-│   ├── config.json             # Main configuration
+│   ├── config.json.example     # Template configuration
+│   ├── config.json             # Your configuration (not in git)
 │   └── README.md               # Config instructions
 ├── .outputs/                   # Deployment outputs (generated, not in git)
 │   ├── hub-outputs.json

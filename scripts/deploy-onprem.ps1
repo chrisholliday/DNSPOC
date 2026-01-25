@@ -22,7 +22,7 @@ param(
     [string]$HubOutputsPath = "$PSScriptRoot/../.outputs/hub-outputs.json",
     
     [Parameter(Mandatory = $false)]
-    [string]$Location = ""
+    [string]$Location = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,12 +45,12 @@ function Write-ErrorMessage {
 
 try {
     # Load configuration
-    Write-Step "Loading configuration"
+    Write-Step 'Loading configuration'
     if (-not (Test-Path $ConfigPath)) {
         throw "Configuration file not found: $ConfigPath"
     }
     $config = Get-Content $ConfigPath | ConvertFrom-Json
-    Write-Success "Configuration loaded"
+    Write-Success 'Configuration loaded'
     
     # Use location from config.json if not provided via parameter
     if ([string]::IsNullOrWhiteSpace($Location)) {
@@ -62,29 +62,29 @@ try {
     }
 
     # Load hub outputs
-    Write-Step "Loading hub deployment outputs"
+    Write-Step 'Loading hub deployment outputs'
     if (-not (Test-Path $HubOutputsPath)) {
         throw "Hub outputs file not found: $HubOutputsPath. Please run deploy-hub.ps1 first."
     }
     $hubOutputs = Get-Content $HubOutputsPath | ConvertFrom-Json
-    Write-Success "Hub outputs loaded"
+    Write-Success 'Hub outputs loaded'
 
     # Ensure we're logged in to Azure
-    Write-Step "Checking Azure connection"
+    Write-Step 'Checking Azure connection'
     $context = Get-AzContext
     if (-not $context) {
-        throw "Not logged in to Azure. Please run Connect-AzAccount first."
+        throw 'Not logged in to Azure. Please run Connect-AzAccount first.'
     }
     Write-Success "Connected to Azure subscription: $($context.Subscription.Name)"
 
     # Create resource group
-    Write-Step "Creating on-prem resource group"
+    Write-Step 'Creating on-prem resource group'
     $onpremRgName = $config.resourceGroups.onprem
     New-AzResourceGroup -Name $onpremRgName -Location $Location -Force | Out-Null
     Write-Success "Resource group created: $onpremRgName"
 
     # Deploy on-prem infrastructure
-    Write-Step "Deploying on-prem infrastructure (VNet, DNS server, Client VM)"
+    Write-Step 'Deploying on-prem infrastructure (VNet, DNS server, Client VM)'
     $onpremDeployment = New-AzResourceGroupDeployment `
         -Name "onprem-deployment-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
         -ResourceGroupName $onpremRgName `
@@ -96,6 +96,7 @@ try {
         -hubVnetName $hubOutputs.hubVnetName.value `
         -hubResourceGroupName $config.resourceGroups.hub `
         -vmPrivateDnsZoneId $hubOutputs.vmPrivateDnsZoneId.value `
+        -vmPrivateDnsZoneName $hubOutputs.vmPrivateDnsZoneName.value `
         -sshPublicKey $config.sshPublicKey `
         -adminUsername $config.adminUsername `
         -dnsServerIP $config.networking.onprem.dnsServerIP `
@@ -105,7 +106,7 @@ try {
         throw "On-prem deployment failed with state: $($onpremDeployment.ProvisioningState)"
     }
 
-    Write-Success "On-prem infrastructure deployed successfully"
+    Write-Success 'On-prem infrastructure deployed successfully'
     Write-Host "`nOn-Prem Outputs:" -ForegroundColor Yellow
     $onpremDeployment.Outputs.GetEnumerator() | ForEach-Object {
         Write-Host "  $($_.Key): $($_.Value.Value)" -ForegroundColor Gray
@@ -116,14 +117,15 @@ try {
     if (-not (Test-Path $outputsDir)) {
         New-Item -ItemType Directory -Path $outputsDir -Force | Out-Null
     }
-    $outputsPath = Join-Path $outputsDir "onprem-outputs.json"
+    $outputsPath = Join-Path $outputsDir 'onprem-outputs.json'
     $onpremDeployment.Outputs | ConvertTo-Json -Depth 10 | Out-File $outputsPath
     Write-Success "On-prem outputs saved to: $outputsPath"
 
     Write-Host "`n✓ On-prem deployment completed successfully!" -ForegroundColor Green
     exit 0
 
-} catch {
+}
+catch {
     Write-ErrorMessage "Deployment failed: $_"
     Write-Host $_.ScriptStackTrace -ForegroundColor Red
     exit 1

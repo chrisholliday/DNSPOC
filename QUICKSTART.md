@@ -16,43 +16,38 @@ Connect-AzAccount
 Get-AzContext
 ```
 
-## 2. Configure SSH Key
+## 2. Configure Settings
 
-The deployment will automatically check for an SSH key and offer to generate one if needed. However, you can pre-generate one using:
+1. **Create your configuration file:**
+
+```powershell
+# Copy the example config to create your own
+Copy-Item config/config.json.example config/config.json
+```
+
+1. **Configure SSH Key:**
+
+The deployment will automatically check for an SSH key and offer to generate one if needed. You can also pre-generate one:
 
 ```powershell
 # Auto-generate SSH key for your OS (Windows, macOS, or Linux)
 ./scripts/New-SSHKeyPair.ps1
 ```
 
-If you prefer to generate manually:
+Then copy the public key content from your `.ssh/dnspoc.pub` file into `config/config.json`.
 
-**Windows:**
+1. **Review other settings in `config/config.json`:**
 
-```powershell
-ssh-keygen -t rsa -b 4096 -f "$env:USERPROFILE\.ssh\dnspoc" -N ""
-```
-
-**macOS / Linux:**
-
-```powershell
-ssh-keygen -t rsa -b 4096 -f "$HOME/.ssh/dnspoc" -N ""
-```
-
-## 3. Configure
-
-Edit `config/config.json`:
-
-- **SSH Public Key**: If you pre-generated a key with `New-SSHKeyPair.ps1`, copy the public key content from your `.ssh/dnspoc.pub` file into this field. Otherwise, the deployment script will display the key and ask you to paste it here.
+- **SSH Public Key**: Will be populated automatically if you run `New-SSHKeyPair.ps1`, or the deployment script will prompt you to add it
 - **Storage Account Name**: Leave empty (`""`) — a unique name will be auto-generated during deployment
-- **Location**: (Optional) Change from `centralus` to your preferred Azure region if desired. Central US is less congested and lower-latency for many users, but you can override this.
+- **Location**: (Optional) Change from `centralus` to your preferred Azure region if desired
 
 **Notes:**
 
 - Storage account names must be globally unique. The deployment script will automatically generate and validate a unique name for you.
 - To override the location during deployment, pass `-Location "yourregion"` to the deploy script
 
-## 4. Deploy
+## 3. Deploy
 
 ```powershell
 # Deploy everything (uses location from config.json)
@@ -64,7 +59,7 @@ Edit `config/config.json`:
 
 **Duration:** ~15-20 minutes
 
-## 5. Validate Deployment
+## 4. Validate Deployment
 
 After deployment completes, validate that all resources were created successfully:
 
@@ -83,7 +78,7 @@ This will verify:
 - Storage account exists
 - VNet peering is configured
 
-## 6. Test
+## 5. Test
 
 ```powershell
 # Get test instructions

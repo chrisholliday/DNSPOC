@@ -1,5 +1,8 @@
 # .gitignore for DNS POC
 
+# User-specific configuration (contains SSH public key)
+config/config.json
+
 # Azure deployment outputs (contain resource IDs and secrets)
 .outputs/
 .outputs/*
