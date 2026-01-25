@@ -51,7 +51,6 @@ The DNS POC is a **well-structured, clear demonstration** of Azure's hybrid DNS 
 
 ## 🎯 Opportunities for Improvement
 
-
 ### 1. **DNS Benefit Demonstration** (HIGH PRIORITY)
 
 **Current Gap:** While the infrastructure deploys, the demonstration of DNS benefits isn't immediately obvious to someone reviewing the project.
@@ -100,7 +99,6 @@ Color-code the different flow paths to show:
 ```
 
 ---
-
 
 ### 2. **Documentation Clarity** (MEDIUM PRIORITY)
 
@@ -185,7 +183,6 @@ Explain why certain choices were made:
 
 ---
 
-
 ### 3. **Testing & Validation** (MEDIUM PRIORITY)
 
 **Current Gap:** Validate-Deployment.ps1 checks infrastructure exists but doesn't test actual DNS resolution.
@@ -236,7 +233,6 @@ File: TESTING.md
 
 ---
 
-
 ### 4. **Scenario Extensibility** (MEDIUM PRIORITY)
 
 **Current State:** Single spoke, demonstrates core pattern but not multi-spoke scalability.
@@ -276,7 +272,6 @@ Show how DNS zones are added/managed:
 ```
 
 ---
-
 
 ### 5. **Code & Documentation Polish** (LOW PRIORITY)
 
@@ -403,4 +398,3 @@ While reviewing, I identified these questions that could shape next steps:
 The DNS POC is **technically sound and well-engineered**. The primary improvements are around **making the benefits visible** and **documenting the design patterns**. Adding visual diagrams and clearer test scenarios would significantly enhance its value as a demonstration or learning tool.
 
 The project successfully achieves its core goal: demonstrating how Azure Private DNS, Private Endpoints, and DNS Private Resolver work together to provide centralized DNS governance with developer autonomy.
-
