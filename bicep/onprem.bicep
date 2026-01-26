@@ -18,6 +18,9 @@ param hubVnetName string
 @description('Hub resource group name')
 param hubResourceGroupName string
 
+@description('Hub resolver inbound IP for DNS configuration')
+param hubResolverInboundIP string
+
 @description('VM private DNS zone ID')
 param vmPrivateDnsZoneId string
 
@@ -86,6 +89,7 @@ module onpremVnet '../modules/vnet.bicep' = {
     vnetName: onpremVnetName
     location: location
     addressPrefix: onpremVnetAddressPrefix
+    dnsServers: [hubResolverInboundIP]
     subnets: [
       {
         name: onpremDefaultSubnetName

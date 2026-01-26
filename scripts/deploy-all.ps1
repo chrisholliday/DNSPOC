@@ -102,10 +102,126 @@ function Invoke-SSHKeyGeneration {
     return $LASTEXITCODE -eq 0
 }
 
+function Test-RequiredModules {
+    <#
+    .SYNOPSIS
+        Validates that all required PowerShell modules are installed
+    .RETURNS
+        $true if all modules are available, $false otherwise
+    #>
+    param()
+    
+    $requiredModules = @('Az.Accounts', 'Az.Resources')
+    $missingModules = @()
+    
+    foreach ($module in $requiredModules) {
+        if (-not (Get-Module -Name $module -ListAvailable)) {
+            $missingModules += $module
+        }
+    }
+    
+    if ($missingModules.Count -gt 0) {
+        Write-ErrorMessage "Missing required PowerShell modules: $($missingModules -join ', ')"
+        Write-Host "`n  To install, run:" -ForegroundColor Gray
+        Write-Host '    Install-Module -Name Az -Scope CurrentUser -AllowClobber -Force' -ForegroundColor Gray
+        return $false
+    }
+    
+    Write-Success 'All required PowerShell modules are installed'
+    return $true
+}
+
+function Test-BicepInstallation {
+    <#
+    .SYNOPSIS
+        Validates that Bicep CLI is installed and accessible
+    .RETURNS
+        $true if Bicep is available, $false otherwise
+    #>
+    param()
+    
+    $bicepPath = $null
+    
+    # Try to find bicep in PATH
+    try {
+        $bicepPath = (Get-Command bicep -ErrorAction SilentlyContinue).Source
+    }
+    catch {
+        $bicepPath = $null
+    }
+    
+    if (-not $bicepPath) {
+        Write-ErrorMessage 'Bicep CLI is not installed or not in PATH'
+        Write-Host "`n  Installation options:" -ForegroundColor Gray
+        Write-Host '    Option 1 (via Azure CLI):' -ForegroundColor Gray
+        Write-Host '      az bicep install' -ForegroundColor Gray
+        Write-Host '' -ForegroundColor Gray
+        Write-Host '    Option 2 (via PowerShell):' -ForegroundColor Gray
+        Write-Host "      New-Item -ItemType Directory -Path `"$env:USERPROFILE\bicep`" -Force | Out-Null" -ForegroundColor Gray
+        Write-Host "      `$bicepUri = 'https://github.com/Azure/bicep/releases/latest/download/bicep-win-x64.exe'" -ForegroundColor Gray
+        Write-Host "      Invoke-WebRequest -Uri `$bicepUri -OutFile `"$env:USERPROFILE\bicep\bicep.exe`"" -ForegroundColor Gray
+        Write-Host "      [Environment]::SetEnvironmentVariable('PATH', `"`$env:PATH;$env:USERPROFILE\bicep`", 'User')" -ForegroundColor Gray
+        Write-Host "      `$env:PATH = `"$env:PATH;$env:USERPROFILE\bicep`"" -ForegroundColor Gray
+        Write-Host '' -ForegroundColor Gray
+        Write-Host '    Option 3 (Manual):' -ForegroundColor Gray
+        Write-Host '      https://aka.ms/bicep-install' -ForegroundColor Gray
+        return $false
+    }
+    
+    # Verify bicep version
+    try {
+        $bicepVersion = & bicep --version 2>&1
+        Write-Success "Bicep CLI is installed: $bicepVersion"
+        return $true
+    }
+    catch {
+        Write-ErrorMessage "Bicep CLI found but failed to execute: $_"
+        return $false
+    }
+}
+
+function Test-AllRequirements {
+    <#
+    .SYNOPSIS
+        Validates all prerequisites for deployment
+    .RETURNS
+        $true if all requirements are met, $false otherwise
+    #>
+    param()
+    
+    Write-Step 'Validating deployment prerequisites'
+    
+    $allValid = $true
+    
+    # Check PowerShell modules
+    if (-not (Test-RequiredModules)) {
+        $allValid = $false
+    }
+    
+    # Check Bicep installation
+    if (-not (Test-BicepInstallation)) {
+        $allValid = $false
+    }
+    
+    if ($allValid) {
+        Write-Success 'All prerequisites validated'
+    }
+    else {
+        Write-ErrorMessage 'Some prerequisites are missing. Please resolve the issues above and try again.'
+    }
+    
+    return $allValid
+}
+
 try {
     Write-Header 'DNS POC - Complete Deployment'
     
     $startTime = Get-Date
+    
+    # Validate all prerequisites
+    if (-not (Test-AllRequirements)) {
+        throw 'Prerequisites validation failed. Please install missing components and try again.'
+    }
     
     # Validate configuration file exists
     Write-Step 'Validating configuration'

@@ -13,6 +13,9 @@ param subnets array = []
 @description('Tags to apply to the virtual network')
 param tags object = {}
 
+@description('DNS servers for the virtual network (optional)')
+param dnsServers array = []
+
 resource vnet 'Microsoft.Network/virtualNetworks@2023-11-01' = {
   name: vnetName
   location: location
@@ -23,6 +26,11 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-11-01' = {
         addressPrefix
       ]
     }
+    dhcpOptions: length(dnsServers) > 0
+      ? {
+          dnsServers: dnsServers
+        }
+      : null
     subnets: [
       for subnet in subnets: {
         name: subnet.name

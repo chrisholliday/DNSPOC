@@ -2,7 +2,7 @@
     "envPrefix": "dnspoc",
     "location": "centralus",
     "adminUsername": "azureuser",
-    "sshPublicKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDlreoqgKRHg6RfLzY2A7IIrwn2jfDuVkRAhR7pN19OmUxAjbiybP8JWwqfOSNdfDhHQGZRbpjYaOli2VZmEseH0xr2QW9JyUsApRQxO2WSQBIoDlRDw3w6Q8obWaYzDqAeXDzj9CJ6qjFvQQFgb3a0GP+zrefhdoFDJn2SA8Ak41EdOntswTVqLvxxGcNmhxn65OOvqSo1NnZlAa3+/jSACbCeZPoKwmIKRJNEZciH6C6w7sJj2rVr1G6E/Rh+3L8v95degHl+JzE1gnk21Sc1Qzow83T1446DeqJt7SgNtS9ZG5blOiE5INmvJXM5g/iqcRu+s4Z+5wpSsDU8NjPvpYo0TszYKGBqUIvzKEvfxZ6jPAfl7PlvquRZplINI2Al2amDp0EXEhth80LMFu39WB7hdqV4FZeUJBosfa06fV4wEIFHDCCJ/gcwsC8ZN1QXbDg1ARP8GatkKXiq8UMj2nWcN1T7M66bsFDKrkz40nrjtTzrLH0oPbyE2Q4FcKCnA64pHEoSN7cB34IYpiTudlIcOfiObNk6QS/5qFFl3m0E+eKqgaoY3D9AMuHGlgG+hsM9JCnNBToKcxOrNr6rQ99gOVoF+dF2JcwjGG4Yk11iQQ0hv5MrlFGMtd+TceIcPZVMPbe2C/eBO1t7ZK/AvTuSxNv44SBhmteSXlyazw== dnspoc-chriss-mbp.lan",
+    "sshPublicKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC5qnUNT24h5CArBLvWylAUckhtGEI9Z5NfyPJ+0v+02AstIlEQvl7BDLRSVUXJVAbjN9z8eMvIBFslHfFAQmV/eBB+OtXLEshtDaiKeDQJk5w8DQBfB6PRezNFDkMP11pVau+huU20EISSQsRytqhAjgZQpVpT+KbC73jn8XO6+sfPNRdibNVmxrNfwVWFTzdwPP1jdzWmoMhe6xT0jXhMmWMl/XDaYbienjUxJGTDTPsU7QDTTKv2T7uNwcHTArxnsizMeGIaLxxgY79oks4caZK00qvHmSUIrpVln7fX9mj3IDDsHgQI6tC9w1C4xsKpxjAMtzwsncCG/mYixXPnqkaVIpUZzLV9L1Q+LmdD+8kGE4YlQaVNDDh4/48BXz8YB17FdAVrs7AIL/T+1mk1rgtyIA/ia6UajZ9WRe4f8Lqn582clGf37cIuRRK4qETjUqCbcjiYgS/pDWCCGb8TuUAYBLuUKMXwginMCRU0HxPbEvdoVjyMu8GPswX06tV/iQf0mLboPbOuWjPSBzGkUt/v+f+vQrCC5G8RX+NgFl/DZzRAwNAxcUYCXLcU7W/vHZjbsBOzlJbstXpcm9ONe8gfDGfU6YT4HUBkEhK0QYRCQtCLCq6kSHdeE6QjPbnOyaZhgwFqBxyaOKpP/JfIxHbZ3Y0jNq+6JzOZ2UEpKw== dnspoc-Pacifica",
     "storageAccountName": "",
     "resourceGroups": {
         "hub": "dnspoc-rg-hub",

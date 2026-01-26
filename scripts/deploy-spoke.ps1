@@ -177,6 +177,7 @@ try {
         -hubVnetId $hubOutputs.hubVnetId.value `
         -hubVnetName $hubOutputs.hubVnetName.value `
         -hubResourceGroupName $config.resourceGroups.hub `
+        -hubResolverInboundIP $hubOutputs.resolverInboundIP.value `
         -blobPrivateDnsZoneId $hubOutputs.blobPrivateDnsZoneId.value `
         -blobPrivateDnsZoneName $hubOutputs.blobPrivateDnsZoneName.value `
         -vmPrivateDnsZoneId $hubOutputs.vmPrivateDnsZoneId.value `

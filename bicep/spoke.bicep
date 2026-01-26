@@ -18,6 +18,9 @@ param hubVnetName string
 @description('Hub resource group name for DNS zone links')
 param hubResourceGroupName string
 
+@description('Hub resolver inbound IP for DNS configuration')
+param hubResolverInboundIP string
+
 @description('Blob private DNS zone ID')
 param blobPrivateDnsZoneId string
 
@@ -80,6 +83,7 @@ module spokeVnet '../modules/vnet.bicep' = {
     vnetName: spokeVnetName
     location: location
     addressPrefix: spokeVnetAddressPrefix
+    dnsServers: [hubResolverInboundIP]
     subnets: [
       {
         name: spokeDefaultSubnetName

@@ -76,6 +76,48 @@ module dnsResolver '../modules/dns-resolver.bicep' = {
   }
 }
 
+// Update hub VNet with DNS servers pointing to the resolver (so hub VMs also use it)
+module hubVnetWithDns '../modules/vnet.bicep' = {
+  name: 'deploy-${hubVnetName}-dns'
+  params: {
+    vnetName: hubVnetName
+    location: location
+    addressPrefix: hubVnetAddressPrefix
+    dnsServers: [dnsResolver.outputs.inboundEndpointIP]
+    subnets: [
+      {
+        name: inboundSubnetName
+        addressPrefix: '10.0.0.0/28'
+        delegations: [
+          {
+            name: 'Microsoft.Network.dnsResolvers'
+            properties: {
+              serviceName: 'Microsoft.Network/dnsResolvers'
+            }
+          }
+        ]
+      }
+      {
+        name: outboundSubnetName
+        addressPrefix: '10.0.0.16/28'
+        delegations: [
+          {
+            name: 'Microsoft.Network.dnsResolvers'
+            properties: {
+              serviceName: 'Microsoft.Network/dnsResolvers'
+            }
+          }
+        ]
+      }
+      {
+        name: defaultSubnetName
+        addressPrefix: '10.0.1.0/24'
+      }
+    ]
+    tags: tags
+  }
+}
+
 // Private DNS Zones
 var blobPrivateDnsZoneName = 'privatelink.blob.${environment().suffixes.storage}'
 var vmPrivateDnsZoneName = 'example.pvt'

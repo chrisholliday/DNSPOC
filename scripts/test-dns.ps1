@@ -29,10 +29,11 @@ function Write-Success {
 }
 
 function Write-TestResult {
-    param([string]$TestName, [bool]$Passed, [string]$Details = "")
+    param([string]$TestName, [bool]$Passed, [string]$Details = '')
     if ($Passed) {
         Write-Host "    ✓ $TestName" -ForegroundColor Green
-    } else {
+    }
+    else {
         Write-Host "    ✗ $TestName" -ForegroundColor Red
     }
     if ($Details) {
@@ -47,11 +48,11 @@ function Write-ErrorMessage {
 
 try {
     Write-Host "`n╔═══════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║                    DNS POC - DNS TESTS                            ║" -ForegroundColor Cyan
-    Write-Host "╚═══════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host '║                    DNS POC - DNS TESTS                            ║' -ForegroundColor Cyan
+    Write-Host '╚═══════════════════════════════════════════════════════════════════╝' -ForegroundColor Cyan
 
     # Load configuration and outputs
-    Write-Step "Loading configuration"
+    Write-Step 'Loading configuration'
     if (-not (Test-Path $ConfigPath)) {
         throw "Configuration file not found: $ConfigPath"
     }
@@ -62,17 +63,25 @@ try {
     $onpremOutputsPath = "$PSScriptRoot/../.outputs/onprem-outputs.json"
     
     if (-not (Test-Path $hubOutputsPath) -or -not (Test-Path $spokeOutputsPath) -or -not (Test-Path $onpremOutputsPath)) {
-        throw "Deployment output files not found. Please run deploy-all.ps1 first."
+        throw 'Deployment output files not found. Please run deploy-all.ps1 first.'
     }
     
     $hubOutputs = Get-Content $hubOutputsPath | ConvertFrom-Json
     $spokeOutputs = Get-Content $spokeOutputsPath | ConvertFrom-Json
     $onpremOutputs = Get-Content $onpremOutputsPath | ConvertFrom-Json
-    Write-Success "Configuration loaded"
+    Write-Success 'Configuration loaded'
 
     # Prepare test data
     $storageAccountName = $spokeOutputs.storageAccountName.value
-    $storageFqdn = "$storageAccountName.blob.${environment().suffixes.storage}"
+    # Get storage endpoint suffix from Azure context (defaults to core.windows.net for public cloud)
+    $azContext = Get-AzContext
+    $storageEndpointSuffix = if ($azContext.Environment.StorageEndpointSuffix) { 
+        $azContext.Environment.StorageEndpointSuffix 
+    }
+    else { 
+        'core.windows.net' 
+    }
+    $storageFqdn = "$storageAccountName.blob.$storageEndpointSuffix"
     $resolverIP = $hubOutputs.resolverInboundIP.value
     $onpremDnsIP = $onpremOutputs.dnsServerIP.value
     
@@ -83,38 +92,38 @@ try {
 
     # Test Summary
     Write-Host "`n╔═══════════════════════════════════════════════════════════════════╗" -ForegroundColor Green
-    Write-Host "║                      TEST SCENARIOS                               ║" -ForegroundColor Green
-    Write-Host "╚═══════════════════════════════════════════════════════════════════╝" -ForegroundColor Green
+    Write-Host '║                      TEST SCENARIOS                               ║' -ForegroundColor Green
+    Write-Host '╚═══════════════════════════════════════════════════════════════════╝' -ForegroundColor Green
     
     Write-Host "`nTo manually validate DNS resolution:" -ForegroundColor Cyan
     Write-Host "`n1. Spoke VM - Test private endpoint resolution:" -ForegroundColor Yellow
-    Write-Host "   SSH to spoke VM and run:" -ForegroundColor Gray
+    Write-Host '   SSH to spoke VM and run:' -ForegroundColor Gray
     Write-Host "     nslookup $storageFqdn" -ForegroundColor White
-    Write-Host "   Expected: Should resolve to a 10.1.1.x private IP" -ForegroundColor Gray
+    Write-Host '   Expected: Should resolve to a 10.1.1.x private IP' -ForegroundColor Gray
     
     Write-Host "`n2. Spoke VM - Test public DNS resolution:" -ForegroundColor Yellow
-    Write-Host "   SSH to spoke VM and run:" -ForegroundColor Gray
-    Write-Host "     nslookup microsoft.com" -ForegroundColor White
-    Write-Host "   Expected: Should resolve to public IP" -ForegroundColor Gray
+    Write-Host '   SSH to spoke VM and run:' -ForegroundColor Gray
+    Write-Host '     nslookup microsoft.com' -ForegroundColor White
+    Write-Host '   Expected: Should resolve to public IP' -ForegroundColor Gray
     
     Write-Host "`n3. On-Prem Client VM - Test Azure private endpoint:" -ForegroundColor Yellow
-    Write-Host "   SSH to on-prem client VM and run:" -ForegroundColor Gray
+    Write-Host '   SSH to on-prem client VM and run:' -ForegroundColor Gray
     Write-Host "     nslookup $storageFqdn $resolverIP" -ForegroundColor White
-    Write-Host "   Expected: Should resolve to 10.1.1.x via hub resolver" -ForegroundColor Gray
+    Write-Host '   Expected: Should resolve to 10.1.1.x via hub resolver' -ForegroundColor Gray
     
     Write-Host "`n4. On-Prem Client VM - Test public DNS:" -ForegroundColor Yellow
-    Write-Host "   SSH to on-prem client VM and run:" -ForegroundColor Gray
-    Write-Host "     nslookup microsoft.com" -ForegroundColor White
-    Write-Host "   Expected: Should resolve via on-prem DNS server" -ForegroundColor Gray
+    Write-Host '   SSH to on-prem client VM and run:' -ForegroundColor Gray
+    Write-Host '     nslookup microsoft.com' -ForegroundColor White
+    Write-Host '   Expected: Should resolve via on-prem DNS server' -ForegroundColor Gray
 
     Write-Host "`n╔═══════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║                      VM CONNECTION INFO                           ║" -ForegroundColor Cyan
-    Write-Host "╚═══════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host '║                      VM CONNECTION INFO                           ║' -ForegroundColor Cyan
+    Write-Host '╚═══════════════════════════════════════════════════════════════════╝' -ForegroundColor Cyan
 
     Write-Host "`nTo connect to VMs, you'll need to:" -ForegroundColor Yellow
     Write-Host "  1. Add a public IP to the VM's NIC, or" -ForegroundColor Gray
-    Write-Host "  2. Use Azure Bastion, or" -ForegroundColor Gray
-    Write-Host "  3. Use Azure Serial Console" -ForegroundColor Gray
+    Write-Host '  2. Use Azure Bastion, or' -ForegroundColor Gray
+    Write-Host '  3. Use Azure Serial Console' -ForegroundColor Gray
     
     Write-Host "`nVM Names:" -ForegroundColor Cyan
     Write-Host "  Spoke Dev VM: $($config.envPrefix)-vm-spoke-dev" -ForegroundColor White
@@ -122,9 +131,10 @@ try {
     Write-Host "  On-Prem Client: $($config.envPrefix)-vm-onprem-client" -ForegroundColor White
 
     Write-Host "`n✓ Test information prepared!" -ForegroundColor Green
-    Write-Host "Use the commands above to validate DNS resolution." -ForegroundColor Green
+    Write-Host 'Use the commands above to validate DNS resolution.' -ForegroundColor Green
 
-} catch {
+}
+catch {
     Write-ErrorMessage "Test script failed: $_"
     Write-Host $_.ScriptStackTrace -ForegroundColor Red
     exit 1

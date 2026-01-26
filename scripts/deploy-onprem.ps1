@@ -95,6 +95,7 @@ try {
         -hubVnetId $hubOutputs.hubVnetId.value `
         -hubVnetName $hubOutputs.hubVnetName.value `
         -hubResourceGroupName $config.resourceGroups.hub `
+        -hubResolverInboundIP $hubOutputs.resolverInboundIP.value `
         -vmPrivateDnsZoneId $hubOutputs.vmPrivateDnsZoneId.value `
         -vmPrivateDnsZoneName $hubOutputs.vmPrivateDnsZoneName.value `
         -sshPublicKey $config.sshPublicKey `
