@@ -1,172 +1,223 @@
-# 🚀 Azure Private DNS Hub‑and‑Spoke Proof of Concept
+# 🚀 Azure Private DNS Proof of Concept
 
-A PaaS‑centric, IaC‑driven environment demonstrating centralized DNS governance with developer autonomy
+A straightforward demonstration of Azure Private DNS with hub-and-spoke architecture, showing how developers can deploy storage accounts with private endpoints without needing DNS zone access.
 
-## 📘 Overview
+## 📘 What This Proves
 
-This project showcases how Azure Private DNS, Azure DNS Private Resolver, and a hub‑and‑spoke network topology work together to support scalable, and developer‑friendly name resolution for PaaS services. The environment is deployed entirely using Infrastructure as Code (IaC) and is intended to quickly demonstrate the technology and techniques to deliver the solution. While security is always important, enterprise scale security
-configuration is beyond the scope of this simple project. This project also aims to be consumable, easy to understand, and quick to demo.
+This POC demonstrates that:
 
----
-
-## 🎯 Goals
-
-- Deploy a **hub‑and‑spoke virtual network architecture** using IaC.
-- Centrally host and manage storage blob DNS zone.
-- Allow developers to:
-  - Deploy resources in their own spoke VNet.
-  - Create Private Endpoints without DNS involvement.
-  - Automatically generate DNS records for storage blobs.
-  - Resolve PaaS private endpoint names from their spoke VMs.
-  - Resolve PaaS private endpoint names in another spoke.
-  - Resolve DNS records hosted in an "on-premises" network.
-  - Resolve public DNS records via the "on-premises" dns solution.
-- Simulate an **on‑premises DNS server** that:
-  - Forwards queries to the Azure DNS Private Resolver.
-  - Can resolve PaaS private endpoint names hosted in any spoke.
-- Ensure **all DNS resolution flows through the hub**, using:
-  - Azure Private DNS zones for PaaS services.
-  - DNS Private Resolver for cross‑network and hybrid resolution.
-  - Forwarding rules for on‑prem integration.
-
----
+1. **Developers can deploy private endpoints** for Azure PaaS services (like Storage) in their own spoke VNets
+2. **DNS "just works"** - private endpoint DNS records are automatically created in centrally-managed DNS zones
+3. **On-premises integration works** - simulated on-prem network can resolve Azure private endpoints and vice versa
+4. **VM name resolution works** - VMs across all networks can resolve each other using the `example.pvt` domain
 
 ## 🏗️ Architecture
 
-### Virtual Networks
+### Networks
 
-- **Hub VNet**
+- **Hub VNet (10.0.0.0/16)** - Platform team owned
   - Azure DNS Private Resolver (inbound + outbound endpoints)
+  - Private DNS zones: `privatelink.blob.core.windows.net` and `example.pvt`
   - DNS forwarding ruleset
-  - Azure Private DNS Zone(s) for PaaS services
-  - Azure Private DNS Zone for VMs
-  - Peered to all networks
 
-- **Spoke VNet** (single spoke for simplicity)
-  - Developer‑owned
-  - Hosts PaaS resources + Private Endpoints
-  - Linux VM for DNS name resolution testing
+- **Spoke VNet (10.1.0.0/16)** - Developer owned
+  - Developer VM (10.1.0.10)
+  - Storage account with private endpoint (10.1.1.x)
 
-- **On‑Prem Simulation VNet**
-  - Linux DNS VM (dnsmasq) hosting sample "on-premises" DNS records
-  - Provides Internet name resolution for all networks
-  - Linux client VM for DNS resolution testing
+- **On-Prem VNet (10.255.0.0/16)** - Simulated on-premises
+  - DNS server VM (10.255.0.10) running dnsmasq
+  - Client VM (10.255.0.11)
 
-### Platform DNS Zones (centrally owned)
+### DNS Resolution Flow
 
-Azure automatically manages records for PaaS private endpoints in these zones:
-
-| Service | Private DNS Zone |
-| -------- | ------------------ |
-| Storage (blob) | `privatelink.blob.core.windows.net` |
-
-Platform team will manually manage VM records in the vm zone
-
-| Service | Private DNS Zone |
-| -------- | ------------------ |
-| Virtual Machines | `example.pvt` |
-
-These zones are:
-
-- Created and owned by the **platform team**
-- Linked to **all VNets** (hub, spokes, on‑prem)
-- Automatically populated by Azure when developers create Private Endpoints for PaaS services
-
----
-
-## 🔐 Governance Model
-
-### Platform Team Owns
-
-- All `privatelink.*` Private DNS zones
-- `example.pvt` Private DNS zone
-- DNS Private Resolver (inbound + outbound)
-- DNS forwarding ruleset
-- Hub VNet and all VNet links
-
-### Developer Teams Own
-
-- Their resource group(s)
-- Their spoke VNet
-- Their PaaS resources (Storage, SQL, Key Vault, etc.)
-- Their Private Endpoints
-- Linux test VMs
-
-### Developers Do *Not* Need
-
-- Access to Private DNS zones
-- Access to resolver configuration
-- Ability to create or modify DNS records
-- Azure automatically manages all PaaS DNS records.
-
-## All Azure DNS flows route through the hub resolver
-
-- Spoke → Azure DNS → Hub Resolver → Private DNS Zone
-- On‑prem → On‑prem DNS → Hub Resolver → Private DNS Zone
-
-### Public & On Prem DNS flows route through the On Prem DNS server
-
-- Public queries → Hub Resolver → Public DNS forwarders -> On Prem DNS Server -> Public DNS resolution
-- On prem queries → Hub Resolver → Public DNS forwarders -> On Prem DNS Server
-
----
-
-## 🧪 Demonstration Scenarios
-
-### 1. Developer creates a PaaS resource with a Private Endpoint in the Spoke Vnet
-
-- Developer deploys a Storage Account with Blob storage.
-- Developer creates a Private Endpoint in the spoke VNet.
-- Azure automatically creates the DNS record in the correct `privatelink.blob.core.windows.net` zone.
-
-### 2. Spoke VM resolves the PaaS private endpoints
-
-- From a VM in Spoke Vnet:
-
-```code
-nslookup <spoke storage account>.blob.core.windows.net
+```
+Azure VM queries example.pvt
+  ↓
+Hub DNS Resolver (10.0.0.4)
+  ↓
+Forwards to On-Prem DNS (10.255.0.10)
+  ↓
+On-Prem DNS serves from /etc/hosts
 ```
 
-### 3. Spoke VM resolves remote DNS Names
-
-- From a VM in Spoke:
-
-```code
-nslookup microsoft.com
-nslookup <onpclientvm>.example.pvt
+```
+On-Prem VM queries storage.blob.core.windows.net
+  ↓
+On-Prem DNS (10.255.0.10)
+  ↓
+Forwards privatelink.* to Hub Resolver (10.0.0.4)
+  ↓
+Hub Resolver queries Private DNS Zone
+  ↓
+Returns private endpoint IP (10.1.1.x)
 ```
 
-### 4. On‑prem client resolves DNS names
+## 🚀 Quick Start
 
-- From the on‑prem client VM:
+### Prerequisites
 
-```code
-nslookup <spoke storage>.blob.core.windows.net 
-nslookup <Developer VM>.example.pvt
-nslookup www.microsoft.com 
+1. Azure subscription
+2. PowerShell with Az module installed
+3. SSH key pair for VM access
+
+```powershell
+# Install Az module if needed
+Install-Module -Name Az -Repository PSGallery -Force
+
+# Login to Azure
+Connect-AzAccount
 ```
 
----
+### Deploy
 
-## 🧱 Infrastructure as Code (IaC)
+```powershell
+# Generate SSH key (if you don't have one)
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/dnspoc -C "dnspoc"
 
-- This project is authored entirely using **Powershell** and Bicep
-- IaC should be focused on readabiliy and accuracy
-  - All cmdlets should be found within the current (15.2.0) Az module as hosted on the Powershell Gallery
-  - All parameters must be valid for the current Az module
-  - No errors in code, or warnings in VScode
-- Automation should be resuable, with a prefrence for many smaller, focused files over one file do do everything
-- Deployment automation should stop deployment on any error and provide any available context to the user
+# Deploy everything with your SSH public key
+$sshKey = Get-Content ~/.ssh/dnspoc.pub
+./deploy.ps1 -SSHPublicKey $sshKey
 
-## Naming standard
+# Optional: specify a different region
+./deploy.ps1 -SSHPublicKey $sshKey -Location "eastus"
+```
 
-Object names should be created in the following format, or a closely as possible
+**Duration:** ~15-20 minutes
 
-`<DNSPOC>`-`<Object Type>`-`<Network>`-`<role and or suffix as needed>`
+### Test DNS Resolution
 
-### Examples
+```powershell
+# Add public IPs to VMs for SSH access
+./scripts/add-public-ip.ps1 -VMName "dnspoc-vm-spoke-dev" -ResourceGroupName "dnspoc-rg-spoke"
+./scripts/add-public-ip.ps1 -VMName "dnspoc-vm-onprem-client" -ResourceGroupName "dnspoc-rg-onprem"
 
-- dnspoc-rg-hub
-- dnspoc-vm-hub-dnsserver
-- dnspocsaspoke1111 // *storage accounts have restricted naming requirements*
-- dns-privateddnszone-hub-storage
+# Get public IPs
+$spokeVm = Get-AzPublicIpAddress -ResourceGroupName "dnspoc-rg-spoke" -Name "dnspoc-vm-spoke-dev-pip"
+$onpremVm = Get-AzPublicIpAddress -ResourceGroupName "dnspoc-rg-onprem" -Name "dnspoc-vm-onprem-client-pip"
+
+Write-Host "Spoke VM IP: $($spokeVm.IpAddress)"
+Write-Host "On-Prem VM IP: $($onpremVm.IpAddress)"
+
+# SSH to spoke VM and test
+ssh -i ~/.ssh/dnspoc azureuser@<spoke-vm-public-ip>
+
+# Inside spoke VM, test DNS resolution:
+nslookup dnspoc12345.blob.core.windows.net    # Should resolve to 10.1.1.x (private endpoint)
+nslookup dnspoc-vm-spoke-dev.example.pvt       # Should resolve to 10.1.0.10
+nslookup dnspoc-vm-onprem-dns.example.pvt      # Should resolve to 10.255.0.10
+nslookup microsoft.com                          # Should resolve to public IP
+```
+
+### Teardown
+
+```powershell
+# Delete everything
+./teardown.ps1
+
+# Skip confirmation prompt
+./teardown.ps1 -Force
+```
+
+## 🎯 What Makes This Simple
+
+This is a **proof of concept**, not a production-ready solution. Simplifications:
+
+✅ **Hardcoded values** - No config files, everything is in the scripts  
+✅ **Fixed IPs** - All VMs use static IPs for predictability  
+✅ **Minimal scripts** - Two scripts: deploy and teardown  
+✅ **No abstractions** - Direct Bicep deployments without unnecessary modules  
+✅ **Clear naming** - Resources named `dnspoc-*` consistently  
+
+## 📝 Key Files
+
+- `deploy.ps1` - Complete deployment orchestration
+- `teardown.ps1` - Complete cleanup
+- `test.ps1` - Connection information and testing guide
+- `bicep/hub.bicep` - Hub network, DNS resolver, private DNS zones, forwarding rules
+- `bicep/spoke.bicep` - Spoke network, developer VM, storage with private endpoint
+- `bicep/onprem.bicep` - On-prem simulation with dnsmasq DNS server
+- `scripts/add-public-ip.ps1` - Adds public IP to VMs for SSH access
+
+## 🔍 Validation Tests
+
+After deployment, these should all work:
+
+| Test | Location | Command | Expected Result |
+|------|----------|---------|----------------|
+| Private endpoint DNS | Spoke VM | `nslookup <storage>.blob.core.windows.net` | 10.1.1.x |
+| VM name resolution | Spoke VM | `nslookup dnspoc-vm-spoke-dev.example.pvt` | 10.1.0.10 |
+| On-prem VM resolution | Spoke VM | `nslookup dnspoc-vm-onprem-dns.example.pvt` | 10.255.0.10 |
+| Internet DNS | Spoke VM | `nslookup microsoft.com` | Public IP |
+| Private endpoint from on-prem | On-Prem VM | `nslookup <storage>.blob.core.windows.net` | 10.1.1.x |
+
+## 🔒 What Developers Don't Need
+
+- ✅ Access to Private DNS zones
+- ✅ Permissions to create DNS records
+- ✅ Knowledge of DNS resolver configuration
+- ✅ Access to hub network
+
+They just deploy their storage account with a private endpoint, and DNS works automatically!
+
+## 💡 Real-World Usage
+
+In production, you would:
+
+- Use Azure Policy to enforce private endpoints
+- Implement proper RBAC with least privilege
+- Use separate subscriptions for hub and spokes
+- Implement network security with NSGs and Azure Firewall
+- Use Azure Bastion instead of public IPs for VM access
+- Automate with CI/CD pipelines
+- Monitor with Azure Monitor and Log Analytics
+
+But for a POC, this simple approach proves the concept works.
+
+## 🐛 Troubleshooting
+
+### DNS not resolving
+
+```bash
+# Check DNS server on VM
+cat /etc/resolv.conf
+
+# Should show hub resolver IP: 10.0.0.4 (for spoke/hub VMs)
+# Should show on-prem DNS: 10.255.0.10 (for on-prem VMs)
+```
+
+### On-prem DNS issues
+
+```bash
+# SSH to on-prem DNS server
+ssh -i ~/.ssh/dnspoc azureuser@<onprem-dns-ip>
+
+# Check dnsmasq status
+sudo systemctl status dnsmasq
+
+# View DNS query logs
+sudo tail -f /var/log/dnsmasq.log
+
+# Check hosts file
+cat /etc/hosts | grep example.pvt
+```
+
+### Private endpoint not resolving
+
+```bash
+# Check if private endpoint exists
+az network private-endpoint list --resource-group dnspoc-rg-spoke --output table
+
+# Check DNS zone records
+az network private-dns record-set a list --zone-name privatelink.blob.core.windows.net --resource-group dnspoc-rg-hub --output table
+```
+
+## 📚 Learn More
+
+- [Azure Private DNS](https://learn.microsoft.com/azure/dns/private-dns-overview)
+- [Azure DNS Private Resolver](https://learn.microsoft.com/azure/dns/dns-private-resolver-overview)
+- [Private Endpoints](https://learn.microsoft.com/azure/private-link/private-endpoint-overview)
+- [Hub-Spoke Network Topology](https://learn.microsoft.com/azure/architecture/reference-architectures/hybrid-networking/hub-spoke)
+
+## 📄 License
+
+MIT License - See LICENSE file for details

@@ -121,7 +121,7 @@ module hubVnetWithDns '../modules/vnet.bicep' = {
   }
 }
 
-// DNS Forwarding Ruleset for on-premises domain
+// DNS Forwarding Ruleset for on-premises domain and internet DNS
 module dnsForwardingRuleset '../bicep/dns-forwarding-ruleset.bicep' = {
   name: 'deploy-dns-forwarding-ruleset'
   params: {
@@ -132,6 +132,16 @@ module dnsForwardingRuleset '../bicep/dns-forwarding-ruleset.bicep' = {
       {
         name: 'forward-example-pvt'
         domainName: 'example.pvt.'
+        targetDnsServers: [
+          {
+            ipAddress: onpremDnsServerIP
+            port: 53
+          }
+        ]
+      }
+      {
+        name: 'forward-internet-dns'
+        domainName: '.'
         targetDnsServers: [
           {
             ipAddress: onpremDnsServerIP

@@ -155,7 +155,7 @@ module spokeVmDnsLink '../modules/private-dns-zone.bicep' = {
   }
 }
 
-// Developer VM in spoke
+// Developer VM in spoke (using static IP 10.1.0.10)
 var spokeVmName = '${envPrefix}-vm-spoke-dev'
 
 module spokeDevVm '../modules/vm.bicep' = {
@@ -167,6 +167,8 @@ module spokeDevVm '../modules/vm.bicep' = {
     adminUsername: adminUsername
     sshPublicKey: sshPublicKey
     subnetId: spokeVnet.outputs.subnets[0].id
+    privateIPAllocationMethod: 'Static'
+    privateIPAddress: '10.1.0.10'
     cloudInit: '''
 #cloud-config
 package_update: true

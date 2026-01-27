@@ -89,7 +89,7 @@ module onpremVnet '../modules/vnet.bicep' = {
     vnetName: onpremVnetName
     location: location
     addressPrefix: onpremVnetAddressPrefix
-    dnsServers: [hubResolverInboundIP]
+    dnsServers: [dnsServerIP]
     subnets: [
       {
         name: onpremDefaultSubnetName
@@ -155,9 +155,16 @@ packages:
 write_files:
   - path: /etc/dnsmasq.d/custom.conf
     content: |
-      # Local domain
+      # Local domain for VMs
       local=/example.pvt/
       domain=example.pvt
+      
+      # Forward privatelink zones to Azure DNS resolver
+      server=/privatelink.blob.core.windows.net/${hubResolverInboundIP}
+      
+      # Upstream DNS servers for internet resolution
+      server=8.8.8.8
+      server=8.8.4.4
       
       # Listen on all interfaces
       interface=eth0
@@ -169,8 +176,17 @@ write_files:
       # Log queries for troubleshooting
       log-queries
       log-facility=/var/log/dnsmasq.log
+  
+  - path: /etc/hosts.example-pvt
+    content: |
+      # VM records for example.pvt domain
+      # Note: Spoke VM uses static IP, on-prem VMs use static IPs
+      10.1.0.10   ${envPrefix}-vm-spoke-dev.example.pvt      ${envPrefix}-vm-spoke-dev
+      10.255.0.10 ${envPrefix}-vm-onprem-dns.example.pvt     ${envPrefix}-vm-onprem-dns
+      10.255.0.11 ${envPrefix}-vm-onprem-client.example.pvt  ${envPrefix}-vm-onprem-client
 
 runcmd:
+  - cat /etc/hosts.example-pvt >> /etc/hosts
   - systemctl enable dnsmasq
   - systemctl restart dnsmasq
   - touch /var/log/dnsmasq.log
@@ -193,7 +209,7 @@ module dnsServerVm '../modules/vm.bicep' = {
   }
 }
 
-// On-prem client VM
+// On-prem client VM (using static IP 10.255.0.11)
 var clientVmName = '${envPrefix}-vm-onprem-client'
 
 module clientVm '../modules/vm.bicep' = {
@@ -205,6 +221,8 @@ module clientVm '../modules/vm.bicep' = {
     adminUsername: adminUsername
     sshPublicKey: sshPublicKey
     subnetId: onpremVnet.outputs.subnets[0].id
+    privateIPAllocationMethod: 'Static'
+    privateIPAddress: '10.255.0.11'
     cloudInit: '''
 #cloud-config
 package_update: true
