@@ -71,7 +71,7 @@ try {
     Write-Success "Resource group created: $hubRgName"
 
     # Deploy hub infrastructure
-    Write-Step 'Deploying hub infrastructure (VNet, DNS Resolver, Private DNS zones)'
+    Write-Step 'Deploying hub infrastructure (VNet, DNS Resolver, Private DNS zones, Forwarding rules)'
     $hubDeployment = New-AzResourceGroupDeployment `
         -Name "hub-deployment-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
         -ResourceGroupName $hubRgName `
@@ -79,6 +79,7 @@ try {
         -location $Location `
         -envPrefix $config.envPrefix `
         -hubVnetAddressPrefix $config.networking.hub.addressPrefix `
+        -onpremDnsServerIP $config.networking.onprem.dnsServerIP `
         -Verbose
 
     if ($hubDeployment.ProvisioningState -ne 'Succeeded') {

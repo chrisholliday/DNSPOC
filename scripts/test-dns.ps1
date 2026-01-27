@@ -90,6 +90,16 @@ try {
     Write-Host "  Hub Resolver IP: $resolverIP" -ForegroundColor Gray
     Write-Host "  On-Prem DNS IP: $onpremDnsIP" -ForegroundColor Gray
 
+    # Validate on-prem DNS server configuration for example.pvt
+    Write-Step 'Validating on-prem DNS server configuration'
+    
+    Write-Host "`n  Note: example.pvt is hosted by the on-prem dnsmasq server" -ForegroundColor Cyan
+    Write-Host "  Location: On-prem DNS VM at $onpremDnsIP" -ForegroundColor Gray
+    Write-Host '  DNS queries for example.pvt should:' -ForegroundColor Gray
+    Write-Host "    1. Be forwarded from Azure VMs to the hub resolver ($resolverIP)" -ForegroundColor Gray
+    Write-Host "    2. Hub resolver forwards to on-prem DNS ($onpremDnsIP)" -ForegroundColor Gray
+    Write-Host '    3. On-prem dnsmasq server serves example.pvt records' -ForegroundColor Gray
+
     # Test Summary
     Write-Host "`n╔═══════════════════════════════════════════════════════════════════╗" -ForegroundColor Green
     Write-Host '║                      TEST SCENARIOS                               ║' -ForegroundColor Green
@@ -106,15 +116,26 @@ try {
     Write-Host '     nslookup microsoft.com' -ForegroundColor White
     Write-Host '   Expected: Should resolve to public IP' -ForegroundColor Gray
     
-    Write-Host "`n3. On-Prem Client VM - Test Azure private endpoint:" -ForegroundColor Yellow
+    Write-Host "`n3. Spoke VM - Test VM name resolution (example.pvt):" -ForegroundColor Yellow
+    Write-Host '   SSH to spoke VM and run:' -ForegroundColor Gray
+    Write-Host "     nslookup $($config.envPrefix)-vm-spoke-dev.example.pvt" -ForegroundColor White
+    Write-Host '   Expected: Should resolve to spoke VM private IP (10.1.0.x)' -ForegroundColor Gray
+    
+    Write-Host "`n4. On-Prem Client VM - Test Azure private endpoint:" -ForegroundColor Yellow
     Write-Host '   SSH to on-prem client VM and run:' -ForegroundColor Gray
     Write-Host "     nslookup $storageFqdn $resolverIP" -ForegroundColor White
     Write-Host '   Expected: Should resolve to 10.1.1.x via hub resolver' -ForegroundColor Gray
     
-    Write-Host "`n4. On-Prem Client VM - Test public DNS:" -ForegroundColor Yellow
+    Write-Host "`n5. On-Prem Client VM - Test public DNS:" -ForegroundColor Yellow
     Write-Host '   SSH to on-prem client VM and run:' -ForegroundColor Gray
     Write-Host '     nslookup microsoft.com' -ForegroundColor White
     Write-Host '   Expected: Should resolve via on-prem DNS server' -ForegroundColor Gray
+    
+    Write-Host "`n6. On-Prem Client VM - Test VM name resolution (example.pvt):" -ForegroundColor Yellow
+    Write-Host '   SSH to on-prem client VM and run:' -ForegroundColor Gray
+    Write-Host "     nslookup $($config.envPrefix)-vm-spoke-dev.example.pvt" -ForegroundColor White
+    Write-Host "     nslookup $($config.envPrefix)-vm-onprem-dns.example.pvt" -ForegroundColor White
+    Write-Host '   Expected: Should resolve to correct private IPs' -ForegroundColor Gray
 
     Write-Host "`n╔═══════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
     Write-Host '║                      VM CONNECTION INFO                           ║' -ForegroundColor Cyan
@@ -130,8 +151,36 @@ try {
     Write-Host "  On-Prem DNS: $($config.envPrefix)-vm-onprem-dns" -ForegroundColor White
     Write-Host "  On-Prem Client: $($config.envPrefix)-vm-onprem-client" -ForegroundColor White
 
+    # VM Registration section
+    Write-Host "`n╔═══════════════════════════════════════════════════════════════════╗" -ForegroundColor Magenta
+    Write-Host '║                    VM REGISTRATION (example.pvt)                  ║' -ForegroundColor Magenta
+    Write-Host '╚═══════════════════════════════════════════════════════════════════╝' -ForegroundColor Magenta
+
+    Write-Host "`nexample.pvt domain is hosted on the on-prem dnsmasq server." -ForegroundColor Yellow
+    Write-Host 'To register VM hostnames, SSH to the on-prem DNS VM and add records:' -ForegroundColor Cyan
+    
+    Write-Host "`n1. SSH to the on-prem DNS VM:" -ForegroundColor Cyan
+    Write-Host "   SSH as azureuser to: $($config.envPrefix)-vm-onprem-dns" -ForegroundColor Gray
+    Write-Host '   You can get the private IP from:' -ForegroundColor Gray
+    Write-Host "   Get-AzNetworkInterface -ResourceGroupName '$($config.resourceGroups.onprem)' -Name '*onprem-dns*' | Select-Object -ExpandProperty IpConfigurations | Select-Object PrivateIPAddress" -ForegroundColor Gray
+    
+    Write-Host "`n2. Edit the dnsmasq hosts file:" -ForegroundColor Cyan
+    Write-Host '   sudo nano /etc/hosts' -ForegroundColor Gray
+    
+    Write-Host "`n3. Add VM records (get IPs from Azure portal):" -ForegroundColor Cyan
+    Write-Host "   10.1.0.x    $($config.envPrefix)-vm-spoke-dev.example.pvt      $($config.envPrefix)-vm-spoke-dev" -ForegroundColor Gray
+    Write-Host "   10.255.0.10 $($config.envPrefix)-vm-onprem-dns.example.pvt      $($config.envPrefix)-vm-onprem-dns" -ForegroundColor Gray
+    Write-Host "   10.255.0.11 $($config.envPrefix)-vm-onprem-client.example.pvt   $($config.envPrefix)-vm-onprem-client" -ForegroundColor Gray
+    
+    Write-Host "`n4. Restart dnsmasq:" -ForegroundColor Cyan
+    Write-Host '   sudo systemctl restart dnsmasq' -ForegroundColor Gray
+    
+    Write-Host "`n5. Verify from on-prem DNS VM:" -ForegroundColor Cyan
+    Write-Host "   nslookup $($config.envPrefix)-vm-spoke-dev.example.pvt 127.0.0.1" -ForegroundColor Gray
+    Write-Host '   Expected: Should resolve to 10.1.0.x' -ForegroundColor Gray
+
     Write-Host "`n✓ Test information prepared!" -ForegroundColor Green
-    Write-Host 'Use the commands above to validate DNS resolution.' -ForegroundColor Green
+    Write-Host 'Follow the steps above to register VM names in example.pvt and test DNS resolution.' -ForegroundColor Green
 
 }
 catch {

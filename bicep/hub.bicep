@@ -9,6 +9,9 @@ param envPrefix string = 'dnspoc'
 @description('Hub VNet address space')
 param hubVnetAddressPrefix string = '10.0.0.0/16'
 
+@description('On-prem DNS server IP for forwarding rules')
+param onpremDnsServerIP string = '10.255.0.10'
+
 @description('Tags to apply to all resources')
 param tags object = {
   Environment: 'POC'
@@ -115,6 +118,34 @@ module hubVnetWithDns '../modules/vnet.bicep' = {
       }
     ]
     tags: tags
+  }
+}
+
+// DNS Forwarding Ruleset for on-premises domain
+module dnsForwardingRuleset '../bicep/dns-forwarding-ruleset.bicep' = {
+  name: 'deploy-dns-forwarding-ruleset'
+  params: {
+    rulesetName: '${envPrefix}-forwarding-ruleset'
+    location: location
+    outboundEndpointIds: [dnsResolver.outputs.outboundEndpointId]
+    forwardingRules: [
+      {
+        name: 'forward-example-pvt'
+        domainName: 'example.pvt.'
+        targetDnsServers: [
+          {
+            ipAddress: onpremDnsServerIP
+            port: 53
+          }
+        ]
+      }
+    ]
+    vnetLinks: [
+      {
+        name: 'hub-link'
+        vnetId: hubVnet.outputs.vnetId
+      }
+    ]
   }
 }
 
