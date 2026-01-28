@@ -74,38 +74,40 @@ Connect-AzAccount
 # Generate SSH key (if you don't have one)
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/dnspoc -C "dnspoc"
 
-# Deploy everything with your SSH public key
-$sshKey = Get-Content ~/.ssh/dnspoc.pub
-./deploy.ps1 -SSHPublicKey $sshKey
+# Deploy in stages for better control and testing
 
-# Optional: specify a different region
-./deploy.ps1 -SSHPublicKey $sshKey -Location "eastus"
+# STAGE 0: Deploy hub and spoke infrastructure
+./scripts/deploy.ps1 -SSHPublicKey (Get-Content ~/.ssh/dnspoc.pub)
+
+# STAGE 1: Deploy on-prem infrastructure with Azure default DNS
+./scripts/deploy-onprem-stage1.ps1
+
+# STAGE 2: Configure on-prem VNet to use the on-prem DNS server
+./scripts/deploy-onprem-stage2.ps1
+
+# Optional: specify a different region for stage 0
+./scripts/deploy.ps1 -SSHPublicKey (Get-Content ~/.ssh/dnspoc.pub) -Location "eastus"
 ```
 
-**Duration:** ~15-20 minutes
+**Total Duration:** ~25-30 minutes (includes 60 second wait for cloud-init and 2-3 min for VM restart)
 
 ### Test DNS Resolution
 
+See [TESTING-GUIDE.md](./TESTING-GUIDE.md) for comprehensive testing scenarios.
+
+Quick validation:
+
 ```powershell
-# Add public IPs to VMs for SSH access
-./scripts/add-public-ip.ps1 -VMName "dnspoc-vm-spoke-dev" -ResourceGroupName "dnspoc-rg-spoke"
-./scripts/add-public-ip.ps1 -VMName "dnspoc-vm-onprem-client" -ResourceGroupName "dnspoc-rg-onprem"
+# Test DNS server directly
+az vm run-command invoke --resource-group dnspoc-rg-onprem --name dnspoc-vm-onprem-dns `
+  --command-id RunShellScript `
+  --scripts "nslookup microsoft.com 127.0.0.1; nslookup dnspoc-vm-spoke-dev.example.pvt 127.0.0.1"
 
-# Get public IPs
-$spokeVm = Get-AzPublicIpAddress -ResourceGroupName "dnspoc-rg-spoke" -Name "dnspoc-vm-spoke-dev-pip"
-$onpremVm = Get-AzPublicIpAddress -ResourceGroupName "dnspoc-rg-onprem" -Name "dnspoc-vm-onprem-client-pip"
-
-Write-Host "Spoke VM IP: $($spokeVm.IpAddress)"
-Write-Host "On-Prem VM IP: $($onpremVm.IpAddress)"
-
-# SSH to spoke VM and test
-ssh -i ~/.ssh/dnspoc azureuser@<spoke-vm-public-ip>
-
-# Inside spoke VM, test DNS resolution:
-nslookup dnspoc12345.blob.core.windows.net    # Should resolve to 10.1.1.x (private endpoint)
-nslookup dnspoc-vm-spoke-dev.example.pvt       # Should resolve to 10.1.0.10
-nslookup dnspoc-vm-onprem-dns.example.pvt      # Should resolve to 10.255.0.10
-nslookup microsoft.com                          # Should resolve to public IP
+# After stage 2, test client VM (wait 2-3 min for VM restart)
+$storageAccount = (Get-AzStorageAccount -ResourceGroupName dnspoc-rg-spoke).StorageAccountName
+az vm run-command invoke --resource-group dnspoc-rg-onprem --name dnspoc-vm-onprem-client `
+  --command-id RunShellScript `
+  --scripts "nslookup microsoft.com; nslookup $storageAccount.blob.core.windows.net"
 ```
 
 ### Teardown

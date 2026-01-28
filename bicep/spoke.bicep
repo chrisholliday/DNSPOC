@@ -27,12 +27,6 @@ param blobPrivateDnsZoneId string
 @description('Blob private DNS zone name')
 param blobPrivateDnsZoneName string
 
-@description('VM private DNS zone ID')
-param vmPrivateDnsZoneId string
-
-@description('VM private DNS zone name')
-param vmPrivateDnsZoneName string
-
 @description('SSH public key for VMs')
 param sshPublicKey string
 
@@ -139,21 +133,7 @@ module spokeBlobDnsLink '../modules/private-dns-zone.bicep' = {
   }
 }
 
-module spokeVmDnsLink '../modules/private-dns-zone.bicep' = {
-  name: 'deploy-spoke-vm-dns-link'
-  scope: resourceGroup(hubResourceGroupName)
-  params: {
-    zoneName: vmPrivateDnsZoneName
-    tags: tags
-    vnetLinks: [
-      {
-        name: '${spokeVnetName}-link'
-        vnetId: spokeVnet.outputs.vnetId
-        registrationEnabled: false
-      }
-    ]
-  }
-}
+// NOTE: example.pvt DNS zone NOT linked here - queries forwarded to on-prem DNS via Hub Resolver
 
 // Developer VM in spoke (using static IP 10.1.0.10)
 var spokeVmName = '${envPrefix}-vm-spoke-dev'

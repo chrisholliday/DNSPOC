@@ -21,12 +21,6 @@ param hubResourceGroupName string
 @description('Hub resolver inbound IP for DNS configuration')
 param hubResolverInboundIP string
 
-@description('VM private DNS zone ID')
-param vmPrivateDnsZoneId string
-
-@description('VM private DNS zone name')
-param vmPrivateDnsZoneName string
-
 @description('SSH public key for VMs')
 param sshPublicKey string
 
@@ -89,7 +83,7 @@ module onpremVnet '../modules/vnet.bicep' = {
     vnetName: onpremVnetName
     location: location
     addressPrefix: onpremVnetAddressPrefix
-    dnsServers: [dnsServerIP]
+    dnsServers: [] // Use Azure default DNS initially - will be updated after DNS server is configured
     subnets: [
       {
         name: onpremDefaultSubnetName
@@ -124,27 +118,13 @@ module hubToOnpremPeering '../modules/vnet-peering.bicep' = {
   }
 }
 
-// Link on-prem VNet to VM private DNS zone
-module onpremVmDnsLink '../modules/private-dns-zone.bicep' = {
-  name: 'deploy-onprem-vm-dns-link'
-  scope: resourceGroup(hubResourceGroupName)
-  params: {
-    zoneName: vmPrivateDnsZoneName
-    tags: tags
-    vnetLinks: [
-      {
-        name: '${onpremVnetName}-link'
-        vnetId: onpremVnet.outputs.vnetId
-        registrationEnabled: false
-      }
-    ]
-  }
-}
+// NOTE: example.pvt DNS zone NOT linked here - on-prem DNS server is authoritative for this zone
 
 // On-prem DNS server
 var dnsServerName = '${envPrefix}-vm-onprem-dns'
 
-var dnsServerCloudInit = '''#cloud-config
+var dnsServerCloudInit = format(
+  '''{0}
 package_update: true
 package_upgrade: true
 packages:
@@ -159,8 +139,16 @@ write_files:
       local=/example.pvt/
       domain=example.pvt
       
-      # Forward privatelink zones to Azure DNS resolver
-      server=/privatelink.blob.core.windows.net/${hubResolverInboundIP}
+      # Forward Azure privatelink zones to Hub Resolver
+      # This enables hybrid DNS - on-prem can resolve Azure private endpoints
+      server=/privatelink.blob.core.windows.net/{1}
+      server=/blob.core.windows.net/{1}
+      server=/privatelink.file.core.windows.net/{1}
+      server=/file.core.windows.net/{1}
+      server=/privatelink.database.windows.net/{1}
+      server=/database.windows.net/{1}
+      server=/privatelink.postgres.database.azure.com/{1}
+      server=/postgres.database.azure.com/{1}
       
       # Upstream DNS servers for internet resolution
       server=8.8.8.8
@@ -181,9 +169,9 @@ write_files:
     content: |
       # VM records for example.pvt domain
       # Note: Spoke VM uses static IP, on-prem VMs use static IPs
-      10.1.0.10   ${envPrefix}-vm-spoke-dev.example.pvt      ${envPrefix}-vm-spoke-dev
-      10.255.0.10 ${envPrefix}-vm-onprem-dns.example.pvt     ${envPrefix}-vm-onprem-dns
-      10.255.0.11 ${envPrefix}-vm-onprem-client.example.pvt  ${envPrefix}-vm-onprem-client
+      10.1.0.10   {2}-vm-spoke-dev.example.pvt      {2}-vm-spoke-dev
+      10.255.0.10 {2}-vm-onprem-dns.example.pvt     {2}-vm-onprem-dns
+      10.255.0.11 {2}-vm-onprem-client.example.pvt  {2}-vm-onprem-client
 
 runcmd:
   - cat /etc/hosts.example-pvt >> /etc/hosts
@@ -191,7 +179,11 @@ runcmd:
   - systemctl restart dnsmasq
   - touch /var/log/dnsmasq.log
   - chown dnsmasq:nogroup /var/log/dnsmasq.log
-'''
+''',
+  '#cloud-config',
+  hubResolverInboundIP,
+  envPrefix
+)
 
 module dnsServerVm '../modules/vm.bicep' = {
   name: 'deploy-${dnsServerName}'

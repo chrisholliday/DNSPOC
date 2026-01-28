@@ -131,4 +131,4 @@ The deployment generates a random name. Check the deployment output or Azure por
 
 ---
 
-**Ready to prove Azure Private DNS works? Run `./deploy.ps1` and you're done!** 🎉
+**Ready to prove Azure Private DNS works? Run `./scripts/deploy.ps1` and you're done!** 🎉

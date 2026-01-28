@@ -133,7 +133,7 @@ Your DNS POC is now:
 📖 **Documented** - All fixes explained  
 🔍 **Maintainable** - No confusing options  
 
-Get started: `./deploy.ps1 -SSHPublicKey "your-ssh-key"`
+Get started: `./scripts/deploy.ps1 -SSHPublicKey "your-ssh-key"`
 
 ---
 

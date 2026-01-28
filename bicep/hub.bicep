@@ -161,7 +161,6 @@ module dnsForwardingRuleset '../bicep/dns-forwarding-ruleset.bicep' = {
 
 // Private DNS Zones
 var blobPrivateDnsZoneName = 'privatelink.blob.${environment().suffixes.storage}'
-var vmPrivateDnsZoneName = 'example.pvt'
 
 module blobPrivateDnsZone '../modules/private-dns-zone.bicep' = {
   name: 'deploy-blob-private-dns-zone'
@@ -178,20 +177,8 @@ module blobPrivateDnsZone '../modules/private-dns-zone.bicep' = {
   }
 }
 
-module vmPrivateDnsZone '../modules/private-dns-zone.bicep' = {
-  name: 'deploy-vm-private-dns-zone'
-  params: {
-    zoneName: vmPrivateDnsZoneName
-    tags: tags
-    vnetLinks: [
-      {
-        name: '${hubVnetName}-link'
-        vnetId: hubVnet.outputs.vnetId
-        registrationEnabled: false
-      }
-    ]
-  }
-}
+// NOTE: example.pvt zone is NOT created here - it's managed by on-prem DNS server
+// DNS forwarding rule will route example.pvt queries to on-prem (10.255.0.10)
 
 // Outputs for connecting spokes and on-prem
 output hubVnetId string = hubVnet.outputs.vnetId
@@ -199,6 +186,4 @@ output hubVnetName string = hubVnet.outputs.vnetName
 output resolverInboundIP string = dnsResolver.outputs.inboundEndpointIP
 output resolverOutboundEndpointId string = dnsResolver.outputs.outboundEndpointId
 output blobPrivateDnsZoneId string = blobPrivateDnsZone.outputs.zoneId
-output vmPrivateDnsZoneId string = vmPrivateDnsZone.outputs.zoneId
 output blobPrivateDnsZoneName string = blobPrivateDnsZone.outputs.zoneName
-output vmPrivateDnsZoneName string = vmPrivateDnsZone.outputs.zoneName

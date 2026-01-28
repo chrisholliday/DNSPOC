@@ -53,8 +53,42 @@ function Write-Success {
     Write-Host "    ✓ $Message" -ForegroundColor Green
 }
 
+function Get-ValidatedSshPublicKey {
+    param([string]$InputKey)
+
+    if ([string]::IsNullOrWhiteSpace($InputKey)) {
+        throw 'SSH public key is required. Provide the key content or a path to a .pub file.'
+    }
+
+    $expandedPath = $InputKey
+    if ($expandedPath -match '^(~\\|~/)') {
+        $expandedPath = $expandedPath -replace '^(~\\|~/)', "$HOME\\"
+    }
+
+    if (Test-Path -LiteralPath $expandedPath) {
+        $InputKey = Get-Content -LiteralPath $expandedPath -Raw
+    }
+
+    if ($InputKey -match 'BEGIN OPENSSH PRIVATE KEY') {
+        throw 'The SSH key provided is a PRIVATE key. Provide the PUBLIC key (e.g., ~/.ssh/dnspoc.pub).' 
+    }
+
+    $keyLine = ($InputKey -split "`r?`n" | Where-Object { $_ -match '^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp)' } | Select-Object -First 1)
+    if (-not $keyLine) {
+        $keyLine = $InputKey.Trim()
+    }
+
+    if ($keyLine -notmatch '^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp)\s+[A-Za-z0-9+/=]+(\s+.*)?$') {
+        throw 'Invalid SSH public key format. Provide the public key content (single line starting with ssh-rsa/ssh-ed25519/ecdsa-sha2-nistp) or a .pub file path.'
+    }
+
+    return $keyLine.Trim()
+}
+
 try {
     Write-Header 'DNS POC - SIMPLE DEPLOYMENT'
+
+    $SSHPublicKey = Get-ValidatedSshPublicKey -InputKey $SSHPublicKey
     
     # Verify Azure connection
     Write-Step 'Verifying Azure connection'
@@ -82,7 +116,7 @@ try {
     $hubDeployment = New-AzResourceGroupDeployment `
         -Name "hub-deployment-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
         -ResourceGroupName $config.ResourceGroups.Hub `
-        -TemplateFile "$PSScriptRoot/bicep/hub.bicep" `
+        -TemplateFile "$PSScriptRoot/../bicep/hub.bicep" `
         -envPrefix $config.EnvPrefix `
         -location $config.Location `
         -onpremDnsServerIP $config.OnPremDnsIP `
@@ -102,7 +136,7 @@ try {
     $spokeDeployment = New-AzResourceGroupDeployment `
         -Name "spoke-deployment-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
         -ResourceGroupName $config.ResourceGroups.Spoke `
-        -TemplateFile "$PSScriptRoot/bicep/spoke.bicep" `
+        -TemplateFile "$PSScriptRoot/../bicep/spoke.bicep" `
         -envPrefix $config.EnvPrefix `
         -location $config.Location `
         -hubVnetId $hubDeployment.Outputs.hubVnetId.Value `
@@ -111,8 +145,6 @@ try {
         -hubResolverInboundIP $hubDeployment.Outputs.resolverInboundIP.Value `
         -blobPrivateDnsZoneId $hubDeployment.Outputs.blobPrivateDnsZoneId.Value `
         -blobPrivateDnsZoneName $hubDeployment.Outputs.blobPrivateDnsZoneName.Value `
-        -vmPrivateDnsZoneId $hubDeployment.Outputs.vmPrivateDnsZoneId.Value `
-        -vmPrivateDnsZoneName $hubDeployment.Outputs.vmPrivateDnsZoneName.Value `
         -sshPublicKey $SSHPublicKey `
         -adminUsername $config.AdminUsername `
         -storageAccountName $storageAccountName `
@@ -123,48 +155,34 @@ try {
     }
     Write-Success 'Spoke infrastructure deployed'
     
-    # Deploy On-Prem
-    Write-Step 'Deploying on-prem infrastructure (simulated network, DNS server, client VM)'
-    $onpremDeployment = New-AzResourceGroupDeployment `
-        -Name "onprem-deployment-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
-        -ResourceGroupName $config.ResourceGroups.OnPrem `
-        -TemplateFile "$PSScriptRoot/bicep/onprem.bicep" `
-        -envPrefix $config.EnvPrefix `
-        -location $config.Location `
-        -hubVnetId $hubDeployment.Outputs.hubVnetId.Value `
-        -hubVnetName $hubDeployment.Outputs.hubVnetName.Value `
-        -hubResourceGroupName $config.ResourceGroups.Hub `
-        -hubResolverInboundIP $hubDeployment.Outputs.resolverInboundIP.Value `
-        -vmPrivateDnsZoneId $hubDeployment.Outputs.vmPrivateDnsZoneId.Value `
-        -vmPrivateDnsZoneName $hubDeployment.Outputs.vmPrivateDnsZoneName.Value `
-        -sshPublicKey $SSHPublicKey `
-        -adminUsername $config.AdminUsername `
-        -Verbose
-
-    if ($onpremDeployment.ProvisioningState -ne 'Succeeded') {
-        throw 'On-prem deployment failed'
-    }
-    Write-Success 'On-prem infrastructure deployed'
-    
     # Update hub forwarding ruleset to link to spoke and on-prem VNets
-    Write-Step 'Updating DNS forwarding ruleset with spoke and on-prem VNet links'
-    $rulesetDeployment = New-AzResourceGroupDeployment `
-        -Name "ruleset-update-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
-        -ResourceGroupName $config.ResourceGroups.Hub `
-        -TemplateFile "$PSScriptRoot/bicep/dns-forwarding-ruleset.bicep" `
-        -rulesetName "$($config.EnvPrefix)-forwarding-ruleset" `
-        -location $config.Location `
-        -outboundEndpointIds @($hubDeployment.Outputs.resolverOutboundEndpointId.Value) `
-        -vnetLinks @(
+    Write-Step 'Updating DNS forwarding ruleset with VNet links'
+    
+    # Get on-prem VNet ID if it exists
+    $onpremVnet = Get-AzVirtualNetwork -ResourceGroupName $config.ResourceGroups.OnPrem -Name "$($config.EnvPrefix)-vnet-onprem" -ErrorAction SilentlyContinue
+    
+    $vnetLinks = @(
         @{
             name   = "$($config.EnvPrefix)-vnet-spoke-link"
             vnetId = $spokeDeployment.Outputs.spokeVnetId.Value
-        },
-        @{
-            name   = "$($config.EnvPrefix)-vnet-onprem-link"
-            vnetId = $onpremDeployment.Outputs.onpremVnetId.Value
         }
-    ) `
+    )
+    
+    if ($onpremVnet) {
+        $vnetLinks += @{
+            name   = "$($config.EnvPrefix)-vnet-onprem-link"
+            vnetId = $onpremVnet.Id
+        }
+    }
+    
+    $rulesetDeployment = New-AzResourceGroupDeployment `
+        -Name "ruleset-update-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
+        -ResourceGroupName $config.ResourceGroups.Hub `
+        -TemplateFile "$PSScriptRoot/../bicep/dns-forwarding-ruleset.bicep" `
+        -rulesetName "$($config.EnvPrefix)-forwarding-ruleset" `
+        -location $config.Location `
+        -outboundEndpointIds @($hubDeployment.Outputs.resolverOutboundEndpointId.Value) `
+        -vnetLinks $vnetLinks `
         -forwardingRules @(
         @{
             name             = 'forward-example-pvt'
@@ -195,36 +213,26 @@ try {
     Write-Success 'DNS forwarding ruleset updated'
     
     # Display deployment summary
-    Write-Header 'DEPLOYMENT COMPLETE'
+    Write-Header 'STAGE 1 COMPLETE - HUB & SPOKE DEPLOYED'
     
     Write-Host "`nDeployment Summary:" -ForegroundColor Green
     Write-Host "  Environment Prefix: $($config.EnvPrefix)" -ForegroundColor White
     Write-Host "  Location: $($config.Location)" -ForegroundColor White
     Write-Host "  Storage Account: $storageAccountName" -ForegroundColor White
     Write-Host "  Hub Resolver IP: $($hubDeployment.Outputs.resolverInboundIP.Value)" -ForegroundColor White
-    Write-Host "  On-Prem DNS IP: $($config.OnPremDnsIP)" -ForegroundColor White
     
     Write-Host "`nVM Private IPs:" -ForegroundColor Green
     Write-Host "  Spoke Dev VM: $($spokeDeployment.Outputs.spokeDevVmPrivateIP.Value) ($($config.EnvPrefix)-vm-spoke-dev)" -ForegroundColor White
-    Write-Host "  On-Prem DNS: $($onpremDeployment.Outputs.dnsServerIP.Value) ($($config.EnvPrefix)-vm-onprem-dns)" -ForegroundColor White
-    Write-Host "  On-Prem Client: $($onpremDeployment.Outputs.clientVmPrivateIP.Value) ($($config.EnvPrefix)-vm-onprem-client)" -ForegroundColor White
-    
-    Write-Host "`nDNS Resolution Flow:" -ForegroundColor Cyan
-    Write-Host "  1. Azure VMs → Hub Resolver ($($hubDeployment.Outputs.resolverInboundIP.Value))" -ForegroundColor Gray
-    Write-Host "  2. Hub Resolver forwards example.pvt → On-Prem DNS ($($config.OnPremDnsIP))" -ForegroundColor Gray
-    Write-Host '  3. Hub Resolver forwards internet queries → On-Prem DNS → Public DNS (8.8.8.8)' -ForegroundColor Gray
-    Write-Host '  4. On-Prem DNS forwards privatelink.* → Hub Resolver' -ForegroundColor Gray
     
     Write-Host "`nNext Steps:" -ForegroundColor Yellow
-    Write-Host '  1. Test DNS resolution from the VMs' -ForegroundColor White
-    Write-Host '     Run: ./scripts/test-dns.ps1' -ForegroundColor Gray
-    Write-Host "`n  2. Add public IPs to VMs for SSH access" -ForegroundColor White
+    Write-Host '  1. Deploy on-prem infrastructure (Stage 1):' -ForegroundColor White
+    Write-Host '     Run: ./scripts/deploy-onprem-stage1.ps1' -ForegroundColor Cyan
+    Write-Host "`n  2. Configure on-prem DNS (Stage 2):" -ForegroundColor White
+    Write-Host '     Run: ./scripts/deploy-onprem-stage2.ps1' -ForegroundColor Cyan
+    Write-Host "`n  3. Run comprehensive tests:" -ForegroundColor White
+    Write-Host '     See TESTING-GUIDE.md for all test scenarios' -ForegroundColor Gray
+    Write-Host "`n  4. For SSH access to VMs (optional):" -ForegroundColor White
     Write-Host "     Run: ./scripts/add-public-ip.ps1 -VMName '$($config.EnvPrefix)-vm-spoke-dev' -ResourceGroupName '$($config.ResourceGroups.Spoke)'" -ForegroundColor Gray
-    Write-Host "     Run: ./scripts/add-public-ip.ps1 -VMName '$($config.EnvPrefix)-vm-onprem-client' -ResourceGroupName '$($config.ResourceGroups.OnPrem)'" -ForegroundColor Gray
-    Write-Host "`n  3. SSH to VMs and test:" -ForegroundColor White
-    Write-Host "     nslookup $storageAccountName.blob.core.windows.net" -ForegroundColor Gray
-    Write-Host "     nslookup $($config.EnvPrefix)-vm-spoke-dev.example.pvt" -ForegroundColor Gray
-    Write-Host '     nslookup microsoft.com' -ForegroundColor Gray
     
 }
 catch {
