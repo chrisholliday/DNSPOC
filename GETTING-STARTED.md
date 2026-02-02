@@ -22,12 +22,18 @@ Connect-AzAccount
 # 1. Generate SSH key (if you don't have one)
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/dnspoc
 
-# 2. Deploy everything with your SSH public key
+# 2. Stage 0 - Deploy hub + spoke
 $sshKey = Get-Content ~/.ssh/dnspoc.pub
-./deploy.ps1 -SSHPublicKey $sshKey
+./scripts/01-deploy-hub-spoke.ps1 -SSHPublicKey $sshKey
+
+# 3. Stage 1 - Deploy on-prem infrastructure (Azure default DNS)
+./scripts/02-deploy-onprem.ps1
+
+# 4. Stage 2 - Switch on-prem VNet DNS to the on-prem DNS server
+./scripts/03-configure-onprem-dns.ps1
 
 # Optional: specify a different region (defaults to centralus)
-./deploy.ps1 -SSHPublicKey $sshKey -Location "eastus"
+./scripts/01-deploy-hub-spoke.ps1 -SSHPublicKey $sshKey -Location "eastus"
 ```
 
 **Duration:** ~15-20 minutes
@@ -36,7 +42,7 @@ $sshKey = Get-Content ~/.ssh/dnspoc.pub
 
 ```powershell
 # Get connection info and test instructions
-./test.ps1
+./scripts/test.ps1
 
 # Add public IPs to VMs for SSH access
 ./scripts/add-public-ip.ps1 -VMName "dnspoc-vm-spoke-dev" -ResourceGroupName "dnspoc-rg-spoke"
@@ -73,16 +79,15 @@ nslookup microsoft.com
 
 ```powershell
 # Delete everything
-./teardown.ps1
+./scripts/teardown.ps1
 
 # Skip confirmation prompt
-./teardown.ps1 -Force
+./scripts/teardown.ps1 -Force
 ```
 
 ## 📚 Learn More
 
 - **What's in the POC:** See [README.md](README.md)
-- **What was fixed:** See [FIXES-APPLIED.md](FIXES-APPLIED.md)
 - **Architecture details:** See [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ## 🎯 What This Proves
@@ -97,9 +102,11 @@ nslookup microsoft.com
 
 ## 🔍 Key Files
 
-- `deploy.ps1` - Deploy everything
-- `teardown.ps1` - Delete everything
-- `test.ps1` - Testing guide and connection info
+- `scripts/01-deploy-hub-spoke.ps1` - Stage 0: hub + spoke
+- `scripts/02-deploy-onprem.ps1` - Stage 1: on-prem deployment
+- `scripts/03-configure-onprem-dns.ps1` - Stage 2: switch VNet DNS
+- `scripts/teardown.ps1` - Delete everything
+- `scripts/test.ps1` - Testing guide and connection info
 - `bicep/hub.bicep` - Hub infrastructure (resolver, DNS zones, forwarding)
 - `bicep/spoke.bicep` - Spoke infrastructure (developer network, storage)
 - `bicep/onprem.bicep` - On-prem simulation (DNS server, client)
@@ -131,4 +138,4 @@ The deployment generates a random name. Check the deployment output or Azure por
 
 ---
 
-**Ready to prove Azure Private DNS works? Run `./scripts/deploy.ps1` and you're done!** 🎉
+**Ready to prove Azure Private DNS works? Run `./scripts/01-deploy-hub-spoke.ps1` to start!** 🎉

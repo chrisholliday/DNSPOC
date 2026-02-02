@@ -30,7 +30,7 @@ This POC demonstrates that:
 
 ### DNS Resolution Flow
 
-```
+```text
 Azure VM queries example.pvt
   ↓
 Hub DNS Resolver (10.0.0.4)
@@ -40,7 +40,7 @@ Forwards to On-Prem DNS (10.255.0.10)
 On-Prem DNS serves from /etc/hosts
 ```
 
-```
+```text
 On-Prem VM queries storage.blob.core.windows.net
   ↓
 On-Prem DNS (10.255.0.10)
@@ -50,6 +50,18 @@ Forwards privatelink.* to Hub Resolver (10.0.0.4)
 Hub Resolver queries Private DNS Zone
   ↓
 Returns private endpoint IP (10.1.1.x)
+```
+
+```text
+Azure VM queries google.com
+  ↓
+Hub DNS Resolver (10.0.0.4)
+  ↓
+Forwards to On-Prem DNS (10.255.0.10)
+  ↓
+On-Prem DNS forwards to public DNS (8.8.8.8)
+  ↓
+Returns public IP
 ```
 
 ## 🚀 Quick Start
@@ -77,16 +89,16 @@ ssh-keygen -t rsa -b 4096 -f ~/.ssh/dnspoc -C "dnspoc"
 # Deploy in stages for better control and testing
 
 # STAGE 0: Deploy hub and spoke infrastructure
-./scripts/deploy.ps1 -SSHPublicKey (Get-Content ~/.ssh/dnspoc.pub)
+./scripts/01-deploy-hub-spoke.ps1 -SSHPublicKey (Get-Content ~/.ssh/dnspoc.pub)
 
 # STAGE 1: Deploy on-prem infrastructure with Azure default DNS
-./scripts/deploy-onprem-stage1.ps1
+./scripts/02-deploy-onprem.ps1
 
 # STAGE 2: Configure on-prem VNet to use the on-prem DNS server
-./scripts/deploy-onprem-stage2.ps1
+./scripts/03-configure-onprem-dns.ps1
 
 # Optional: specify a different region for stage 0
-./scripts/deploy.ps1 -SSHPublicKey (Get-Content ~/.ssh/dnspoc.pub) -Location "eastus"
+./scripts/01-deploy-hub-spoke.ps1 -SSHPublicKey (Get-Content ~/.ssh/dnspoc.pub) -Location "eastus"
 ```
 
 **Total Duration:** ~25-30 minutes (includes 60 second wait for cloud-init and 2-3 min for VM restart)
@@ -114,10 +126,10 @@ az vm run-command invoke --resource-group dnspoc-rg-onprem --name dnspoc-vm-onpr
 
 ```powershell
 # Delete everything
-./teardown.ps1
+./scripts/teardown.ps1
 
 # Skip confirmation prompt
-./teardown.ps1 -Force
+./scripts/teardown.ps1 -Force
 ```
 
 ## 🎯 What Makes This Simple
@@ -126,15 +138,17 @@ This is a **proof of concept**, not a production-ready solution. Simplifications
 
 ✅ **Hardcoded values** - No config files, everything is in the scripts  
 ✅ **Fixed IPs** - All VMs use static IPs for predictability  
-✅ **Minimal scripts** - Two scripts: deploy and teardown  
+✅ **Small script set** - One deploy script plus two on-prem stages  
 ✅ **No abstractions** - Direct Bicep deployments without unnecessary modules  
 ✅ **Clear naming** - Resources named `dnspoc-*` consistently  
 
 ## 📝 Key Files
 
-- `deploy.ps1` - Complete deployment orchestration
-- `teardown.ps1` - Complete cleanup
-- `test.ps1` - Connection information and testing guide
+- `scripts/01-deploy-hub-spoke.ps1` - Stage 0: hub + spoke deployment
+- `scripts/02-deploy-onprem.ps1` - Stage 1: on-prem deployment (Azure default DNS)
+- `scripts/03-configure-onprem-dns.ps1` - Stage 2: switch VNet DNS to on-prem
+- `scripts/teardown.ps1` - Complete cleanup
+- `scripts/test.ps1` - Connection info and test guidance
 - `bicep/hub.bicep` - Hub network, DNS resolver, private DNS zones, forwarding rules
 - `bicep/spoke.bicep` - Spoke network, developer VM, storage with private endpoint
 - `bicep/onprem.bicep` - On-prem simulation with dnsmasq DNS server
@@ -145,7 +159,7 @@ This is a **proof of concept**, not a production-ready solution. Simplifications
 After deployment, these should all work:
 
 | Test | Location | Command | Expected Result |
-|------|----------|---------|----------------|
+| --- | --- | --- | --- |
 | Private endpoint DNS | Spoke VM | `nslookup <storage>.blob.core.windows.net` | 10.1.1.x |
 | VM name resolution | Spoke VM | `nslookup dnspoc-vm-spoke-dev.example.pvt` | 10.1.0.10 |
 | On-prem VM resolution | Spoke VM | `nslookup dnspoc-vm-onprem-dns.example.pvt` | 10.255.0.10 |

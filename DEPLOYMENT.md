@@ -19,94 +19,52 @@
    - Windows: Included with PowerShell 7.1+ or Git for Windows
    - macOS / Linux: Pre-installed with OpenSSH
 
-## Configuration
-
-1. **Generate SSH Key Pair (Optional - will be prompted if missing)**
-
-   The deployment will automatically check for an SSH key at `~/.ssh/dnspoc` and offer to generate one if needed.
-
-   To pre-generate manually:
-
-   ```powershell
-   ./scripts/New-SSHKeyPair.ps1
-   ```
-
-2. **Create your configuration file:**
-
-   ```powershell
-   # Copy the example config to create your own
-   Copy-Item config/config.json.example config/config.json
-   ```
-
-3. **Edit `config/config.json`:**
-   - Update `sshPublicKey` with your public key content (from `~/.ssh/dnspoc.pub`), or leave as `YOUR_SSH_PUBLIC_KEY_HERE` to be prompted during deployment
-   - Leave `storageAccountName` empty (`""`) — a unique name will be auto-generated during the spoke deployment
-   - Change `location` to your preferred Azure region (defaults to `centralus` which is less congested; consider using for better availability)
-
-   **Note:** `config.json` is excluded from git to prevent committing your SSH public key. Always copy from `config.json.example` when setting up a new clone.
-
 ## Deployment
 
-### Quick Start - Full Deployment
+This project uses a **staged deployment** to avoid cloud-init DNS bootstrap issues on the on-prem DNS server VM.
+
+### Stage 0: Hub + Spoke
 
 ```powershell
-# Deploy everything (uses location from config.json)
-./scripts/deploy-all.ps1
+# Generate SSH key if needed
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/dnspoc
 
-# Or override the location from config.json
-./scripts/deploy-all.ps1 -Location "eastus"
+# Deploy hub and spoke infrastructure
+$sshKey = Get-Content ~/.ssh/dnspoc.pub
+./scripts/01-deploy-hub-spoke.ps1 -SSHPublicKey $sshKey
+
+# Optional: override location (defaults to centralus)
+./scripts/01-deploy-hub-spoke.ps1 -SSHPublicKey $sshKey -Location "eastus"
 ```
 
-### Step-by-Step Deployment
+### Stage 1: On-Prem Infrastructure (Azure Default DNS)
 
 ```powershell
-# 1. Deploy Hub (VNet, DNS Resolver, Private DNS Zones)
-./scripts/deploy-hub.ps1
-
-# 2. Deploy Spoke (VNet, VM, Storage with Private Endpoint)
-./scripts/deploy-spoke.ps1
-
-# 3. Deploy On-Prem Simulation (VNet, DNS Server, Client VM)
-./scripts/deploy-onprem.ps1
-
-# 4. Configure DNS Forwarding
-./scripts/configure-dns-forwarding.ps1
-
-# To override location in any script:
-./scripts/deploy-hub.ps1 -Location "westus"
+./scripts/02-deploy-onprem.ps1
 ```
 
-### Partial Deployment
+### Stage 2: Switch On-Prem VNet DNS to the On-Prem DNS Server
 
 ```powershell
-# Skip already deployed components
-./scripts/deploy-all.ps1 -SkipHub -SkipSpoke
+./scripts/03-configure-onprem-dns.ps1
 ```
 
 ## Validation
 
-After deployment completes, validate that all resources were created successfully:
+After deployment completes, validate DNS resolution using the test helper and the testing guide:
 
 ```powershell
-# Run comprehensive deployment validation
-./scripts/Validate-Deployment.ps1
+# Get VM connection info and test commands
+./scripts/test.ps1
 ```
 
-This script checks:
-
-- Resource groups exist
-- VNets and subnets are configured correctly
-- DNS Resolver with inbound/outbound endpoints
-- Private DNS zones created and linked
-- VMs deployed and running
-- Storage account exists with correct settings
-- VNet peering configured correctly
+See [TESTING-GUIDE.md](TESTING-GUIDE.md) for comprehensive test scenarios.
 
 ## Testing
 
 ```powershell
 # Get test instructions and VM connection info
-./scripts/test-dns.ps1
+./scripts/test.ps1
 ```
 
 ## Cleanup
@@ -138,21 +96,12 @@ DNSPOC/
 │   ├── vnet-peering.bicep
 │   └── dns-forwarding-ruleset.bicep
 ├── scripts/                    # PowerShell deployment scripts
-│   ├── deploy-all.ps1          # Main orchestrator
-│   ├── deploy-hub.ps1
-│   ├── deploy-spoke.ps1
-│   ├── deploy-onprem.ps1
-│   ├── configure-dns-forwarding.ps1
-│   ├── test-dns.ps1
-│   └── teardown.ps1
-├── config/                     # Configuration files
-│   ├── config.json.example     # Template configuration
-│   ├── config.json             # Your configuration (not in git)
-│   └── README.md               # Config instructions
-├── .outputs/                   # Deployment outputs (generated, not in git)
-│   ├── hub-outputs.json
-│   ├── spoke-outputs.json
-│   └── onprem-outputs.json
+│   ├── 01-deploy-hub-spoke.ps1  # Stage 0: hub + spoke
+│   ├── 02-deploy-onprem.ps1
+│   ├── 03-configure-onprem-dns.ps1
+│   ├── test.ps1
+│   ├── teardown.ps1
+│   └── add-public-ip.ps1
 └── Readme.md                   # Project overview
 ```
 
@@ -161,8 +110,8 @@ DNSPOC/
 ### Deployment Fails
 
 - Check Azure connection: `Get-AzContext`
-- Verify configuration: Review `config/config.json`
-- Check output files: `.outputs/*-outputs.json` (only exist after successful deployment)
+- Re-run Stage 0 to recreate hub + spoke outputs
+- Confirm on-prem deployment uses Stage 1 before Stage 2
 
 ### DNS Resolution Issues
 
@@ -199,7 +148,7 @@ Based on East US pricing (approximate):
 
 After deployment:
 
-1. Run `test-dns.ps1` to get testing instructions
+1. Run `scripts/test.ps1` to get testing instructions
 2. SSH to VMs and validate DNS resolution
 3. Review Azure Portal for deployed resources
-4. Run `teardown.ps1` when finished
+4. Run `scripts/teardown.ps1` when finished

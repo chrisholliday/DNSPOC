@@ -226,9 +226,9 @@ try {
     
     Write-Host "`nNext Steps:" -ForegroundColor Yellow
     Write-Host '  1. Deploy on-prem infrastructure (Stage 1):' -ForegroundColor White
-    Write-Host '     Run: ./scripts/deploy-onprem-stage1.ps1' -ForegroundColor Cyan
+    Write-Host '     Run: ./scripts/02-deploy-onprem.ps1' -ForegroundColor Cyan
     Write-Host "`n  2. Configure on-prem DNS (Stage 2):" -ForegroundColor White
-    Write-Host '     Run: ./scripts/deploy-onprem-stage2.ps1' -ForegroundColor Cyan
+    Write-Host '     Run: ./scripts/03-configure-onprem-dns.ps1' -ForegroundColor Cyan
     Write-Host "`n  3. Run comprehensive tests:" -ForegroundColor White
     Write-Host '     See TESTING-GUIDE.md for all test scenarios' -ForegroundColor Gray
     Write-Host "`n  4. For SSH access to VMs (optional):" -ForegroundColor White

@@ -56,7 +56,7 @@ try {
     Write-Success "Connected as $($context.Account.Id)"
     
     # Get SSH key
-    $sshKeyPath = "$env:USERPROFILE\.ssh\dnspoc.pub"
+    $sshKeyPath = "$home\.ssh\dnspoc.pub"
     if (-not (Test-Path $sshKeyPath)) {
         throw "SSH public key not found at $sshKeyPath. Generate one first with: ssh-keygen -t rsa -b 4096 -f ~/.ssh/dnspoc"
     }
@@ -134,7 +134,7 @@ try {
     Write-Host '     • Storage account: nslookup <storagename>.blob.core.windows.net 127.0.0.1' -ForegroundColor Gray
     
     Write-Host "`n  2. Once DNS works, run Stage 2 to update VNet DNS settings:" -ForegroundColor White
-    Write-Host '     .\scripts\deploy-onprem-stage2.ps1' -ForegroundColor Gray
+    Write-Host '     .\scripts\03-configure-onprem-dns.ps1' -ForegroundColor Gray
     
 }
 catch {

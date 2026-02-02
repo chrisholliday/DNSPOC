@@ -6,7 +6,7 @@ After deploying with the staged approach, use this guide to validate all DNS fun
 
 ### Stage 1: On-Prem DNS Server Tests
 
-After `deploy-onprem-stage1.ps1` completes, verify the DNS server itself works:
+After `02-deploy-onprem.ps1` completes, verify the DNS server itself works:
 
 ```powershell
 # Test internet DNS resolution
@@ -37,7 +37,7 @@ az vm run-command invoke --resource-group dnspoc-rg-onprem --name dnspoc-vm-onpr
 
 ### Stage 2: On-Prem Client Tests
 
-After `deploy-onprem-stage2.ps1` completes and client VM has restarted (2-3 min):
+After `03-configure-onprem-dns.ps1` completes and client VM has restarted (2-3 min):
 
 ```powershell
 # Verify client is using on-prem DNS
@@ -240,7 +240,7 @@ Remove-AzResourceGroup -Name 'dnspoc-rg-spoke' -Force
 Remove-AzResourceGroup -Name 'dnspoc-rg-onprem' -Force
 
 # Or use the teardown script
-.\teardown.ps1
+.\scripts\teardown.ps1
 ```
 
 ---
