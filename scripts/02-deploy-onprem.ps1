@@ -98,25 +98,51 @@ try {
     Write-Success 'On-prem infrastructure deployed'
     
     # Wait for cloud-init to complete
-    Write-Step 'Waiting for cloud-init to complete (60 seconds)'
-    Start-Sleep -Seconds 60
+    Write-Step 'Waiting for cloud-init to complete (120 seconds)'
+    Start-Sleep -Seconds 120
     
     # Verify dnsmasq is running
     Write-Step 'Verifying dnsmasq installation'
-    $result = az vm run-command invoke `
-        --resource-group $config.ResourceGroups.OnPrem `
-        --name 'dnspoc-vm-onprem-dns' `
-        --command-id RunShellScript `
-        --scripts "systemctl status dnsmasq --no-pager; echo '---'; cat /etc/hosts | grep example.pvt" `
-        --query 'value[0].message' `
-        --output tsv 2>&1
+    Write-Host '    • This may take 1-2 minutes as VM agent becomes ready...' -ForegroundColor Gray
     
-    if ($result -like '*active (running)*') {
-        Write-Success 'dnsmasq is running'
-    }
-    else {
-        Write-Host '    ⚠ dnsmasq may not be running yet. Check with:' -ForegroundColor Yellow
-        Write-Host "      az vm run-command invoke --resource-group $($config.ResourceGroups.OnPrem) --name dnspoc-vm-onprem-dns --command-id RunShellScript --scripts 'systemctl status dnsmasq'" -ForegroundColor Gray
+    $maxAttempts = 3
+    $attempt = 0
+    $dnsmasqRunning = $false
+    
+    while ($attempt -lt $maxAttempts -and -not $dnsmasqRunning) {
+        $attempt++
+        if ($attempt -gt 1) {
+            Write-Host "    • Retry attempt $attempt/$maxAttempts..." -ForegroundColor Gray
+            Start-Sleep -Seconds 30
+        }
+        
+        try {
+            $result = az vm run-command invoke `
+                --resource-group $config.ResourceGroups.OnPrem `
+                --name 'dnspoc-vm-onprem-dns' `
+                --command-id RunShellScript `
+                --scripts 'systemctl is-active dnsmasq' `
+                --query 'value[0].message' `
+                --output tsv `
+                --no-wait:$false 2>&1
+            
+            if ($result -like '*running*') {
+                Write-Success 'dnsmasq is running'
+                $dnsmasqRunning = $true
+            }
+            elseif ($result -like '*inactive*') {
+                Write-Host '    ⚠ dnsmasq is inactive. It may still be starting up...' -ForegroundColor Yellow
+            }
+        }
+        catch {
+            if ($attempt -lt $maxAttempts) {
+                Write-Host '    • VM agent not ready yet. Retrying...' -ForegroundColor Gray
+            }
+            else {
+                Write-Host '    ⚠ Unable to verify dnsmasq status. Check manually with:' -ForegroundColor Yellow
+                Write-Host "      az vm run-command invoke --resource-group $($config.ResourceGroups.OnPrem) --name dnspoc-vm-onprem-dns --command-id RunShellScript --scripts 'systemctl status dnsmasq'" -ForegroundColor Gray
+            }
+        }
     }
     
     Write-Header 'STAGE 1 COMPLETE'
