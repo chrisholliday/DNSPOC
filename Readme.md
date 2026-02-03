@@ -88,16 +88,16 @@ ssh-keygen -t rsa -b 4096 -f ~/.ssh/dnspoc -C "dnspoc"
 
 # Deploy in stages for better control and testing
 
-# STAGE 0: Deploy hub and spoke infrastructure
+# STAGE 1: Deploy hub and spoke infrastructure
 ./scripts/01-deploy-hub-spoke.ps1 -SSHPublicKey (Get-Content ~/.ssh/dnspoc.pub)
 
-# STAGE 1: Deploy on-prem infrastructure with Azure default DNS
+# STAGE 2: Deploy on-prem infrastructure with Azure default DNS
 ./scripts/02-deploy-onprem.ps1
 
-# STAGE 2: Configure on-prem VNet to use the on-prem DNS server
+# STAGE 3: Configure on-prem VNet to use the on-prem DNS server
 ./scripts/03-configure-onprem-dns.ps1
 
-# Optional: specify a different region for stage 0
+# Optional: specify a different region for stage 1
 ./scripts/01-deploy-hub-spoke.ps1 -SSHPublicKey (Get-Content ~/.ssh/dnspoc.pub) -Location "eastus"
 ```
 
@@ -115,7 +115,7 @@ az vm run-command invoke --resource-group dnspoc-rg-onprem --name dnspoc-vm-onpr
   --command-id RunShellScript `
   --scripts "nslookup microsoft.com 127.0.0.1; nslookup dnspoc-vm-spoke-dev.example.pvt 127.0.0.1"
 
-# After stage 2, test client VM (wait 2-3 min for VM restart)
+# After stage 3, test client VM (wait 2-3 min for VM restart)
 $storageAccount = (Get-AzStorageAccount -ResourceGroupName dnspoc-rg-spoke).StorageAccountName
 az vm run-command invoke --resource-group dnspoc-rg-onprem --name dnspoc-vm-onprem-client `
   --command-id RunShellScript `
@@ -144,9 +144,9 @@ This is a **proof of concept**, not a production-ready solution. Simplifications
 
 ## 📝 Key Files
 
-- `scripts/01-deploy-hub-spoke.ps1` - Stage 0: hub + spoke deployment
-- `scripts/02-deploy-onprem.ps1` - Stage 1: on-prem deployment (Azure default DNS)
-- `scripts/03-configure-onprem-dns.ps1` - Stage 2: switch VNet DNS to on-prem
+- `scripts/01-deploy-hub-spoke.ps1` - Stage 1: hub + spoke deployment
+- `scripts/02-deploy-onprem.ps1` - Stage 2: on-prem deployment (Azure default DNS)
+- `scripts/03-configure-onprem-dns.ps1` - Stage 3: switch VNet DNS to on-prem
 - `scripts/teardown.ps1` - Complete cleanup
 - `scripts/test.ps1` - Connection info and test guidance
 - `bicep/hub.bicep` - Hub network, DNS resolver, private DNS zones, forwarding rules
@@ -203,6 +203,8 @@ cat /etc/resolv.conf
 
 ### On-prem DNS issues
 
+**Using SSH (requires public IP):**
+
 ```bash
 # SSH to on-prem DNS server
 ssh -i ~/.ssh/dnspoc azureuser@<onprem-dns-ip>
@@ -216,6 +218,19 @@ sudo tail -f /var/log/dnsmasq.log
 # Check hosts file
 cat /etc/hosts | grep example.pvt
 ```
+
+**Using Azure VM Run Command (no SSH/public IP needed):**
+
+```powershell
+az vm run-command invoke --resource-group dnspoc-rg-onprem --name dnspoc-vm-onprem-dns `
+  --command-id RunShellScript `
+  --scripts "systemctl status dnsmasq; tail /var/log/dnsmasq.log"
+```
+
+**Using Azure Bastion:**
+
+- Portal → VM → Connect → Bastion
+- Then run the bash commands above in the Bastion console
 
 ### Private endpoint not resolving
 

@@ -23,7 +23,7 @@
 
 This project uses a **staged deployment** to avoid cloud-init DNS bootstrap issues on the on-prem DNS server VM.
 
-### Stage 0: Hub + Spoke
+### Stage 1: Hub + Spoke
 
 ```powershell
 # Generate SSH key if needed
@@ -37,13 +37,13 @@ $sshKey = Get-Content ~/.ssh/dnspoc.pub
 ./scripts/01-deploy-hub-spoke.ps1 -SSHPublicKey $sshKey -Location "eastus"
 ```
 
-### Stage 1: On-Prem Infrastructure (Azure Default DNS)
+### Stage 2: On-Prem Infrastructure (Azure Default DNS)
 
 ```powershell
 ./scripts/02-deploy-onprem.ps1
 ```
 
-### Stage 2: Switch On-Prem VNet DNS to the On-Prem DNS Server
+### Stage 3: Switch On-Prem VNet DNS to the On-Prem DNS Server
 
 ```powershell
 ./scripts/03-configure-onprem-dns.ps1
@@ -96,7 +96,7 @@ DNSPOC/
 │   ├── vnet-peering.bicep
 │   └── dns-forwarding-ruleset.bicep
 ├── scripts/                    # PowerShell deployment scripts
-│   ├── 01-deploy-hub-spoke.ps1  # Stage 0: hub + spoke
+│   ├── 01-deploy-hub-spoke.ps1  # Stage 1: hub + spoke
 │   ├── 02-deploy-onprem.ps1
 │   ├── 03-configure-onprem-dns.ps1
 │   ├── test.ps1
@@ -110,8 +110,8 @@ DNSPOC/
 ### Deployment Fails
 
 - Check Azure connection: `Get-AzContext`
-- Re-run Stage 0 to recreate hub + spoke outputs
-- Confirm on-prem deployment uses Stage 1 before Stage 2
+- Re-run Stage 1 to recreate hub + spoke outputs
+- Confirm on-prem deployment uses Stage 2 before Stage 3
 
 ### DNS Resolution Issues
 
@@ -124,9 +124,22 @@ DNSPOC/
 
 VMs are deployed without public IPs for security. Options:
 
-1. Add public IP temporarily via Azure Portal
-2. Use Azure Bastion
-3. Use Azure Serial Console
+1. **Add public IP temporarily** (for testing)
+
+   ```powershell
+   ./scripts/add-public-ip.ps1 -VMName "dnspoc-vm-spoke-dev" -ResourceGroupName "dnspoc-rg-spoke"
+   ssh -i ~/.ssh/dnspoc azureuser@<public-ip>
+   ```
+
+2. **Use Azure Bastion** (recommended for secure access)
+   - Deploy Azure Bastion to the hub VNet
+   - Connect through Azure Portal: VM → Connect → Bastion
+   - No public IPs needed, no SSH keys required in browser
+   - See [Azure Bastion documentation](https://learn.microsoft.com/azure/bastion/bastion-overview)
+
+3. **Use Azure Serial Console** (for emergency access)
+   - Requires no network connectivity
+   - Access through Azure Portal: VM → Serial console
 
 ## Estimated Costs
 

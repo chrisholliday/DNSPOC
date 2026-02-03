@@ -2,10 +2,10 @@
 
 <#
 .SYNOPSIS
-    Stage 1: Deploy on-prem network and DNS server with Azure default DNS
+    Stage 2: Deploy on-prem network and DNS server with Azure default DNS
 .DESCRIPTION
     Deploys the on-prem infrastructure with Azure DNS so that cloud-init can install packages.
-    After this completes, verify DNS server is working, then run stage 2 to update VNet DNS settings.
+    After this completes, verify DNS server is working, then run stage 3 to update VNet DNS settings.
 #>
 
 [CmdletBinding()]
@@ -45,7 +45,7 @@ function Write-Success {
 }
 
 try {
-    Write-Header 'STAGE 1: Deploy On-Prem Infrastructure'
+    Write-Header 'STAGE 2: Deploy On-Prem Infrastructure'
     
     # Verify Azure connection
     Write-Step 'Verifying Azure connection'
@@ -77,10 +77,10 @@ try {
     Write-Step 'Deploying on-prem infrastructure (using Azure default DNS for now)'
     Write-Host '    • This allows cloud-init to install and configure dnsmasq' -ForegroundColor Gray
     Write-Host '    • Forwarding rules configured to resolve private endpoints' -ForegroundColor Gray
-    Write-Host '    • After deployment, DNS server will be configured as VNet DNS in stage 2' -ForegroundColor Gray
+    Write-Host '    • After deployment, DNS server will be configured as VNet DNS in stage 3' -ForegroundColor Gray
     
     $onpremDeployment = New-AzResourceGroupDeployment `
-        -Name "onprem-stage1-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
+        -Name "onprem-stage2-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
         -ResourceGroupName $config.ResourceGroups.OnPrem `
         -TemplateFile "$PSScriptRoot\..\bicep\onprem.bicep" `
         -envPrefix $config.EnvPrefix `
@@ -145,7 +145,7 @@ try {
         }
     }
     
-    Write-Header 'STAGE 1 COMPLETE'
+    Write-Header 'STAGE 2 COMPLETE'
     
     Write-Host "`nWhat was deployed:" -ForegroundColor Cyan
     Write-Host '  ✓ On-prem VNet (10.255.0.0/16) with Azure default DNS' -ForegroundColor Gray
@@ -159,7 +159,7 @@ try {
     Write-Host '     • Local domain: nslookup dnspoc-vm-spoke-dev.example.pvt 127.0.0.1' -ForegroundColor Gray
     Write-Host '     • Storage account: nslookup <storagename>.blob.core.windows.net 127.0.0.1' -ForegroundColor Gray
     
-    Write-Host "`n  2. Once DNS works, run Stage 2 to update VNet DNS settings:" -ForegroundColor White
+    Write-Host "`n  2. Once DNS works, run Stage 3 to update VNet DNS settings:" -ForegroundColor White
     Write-Host '     .\scripts\03-configure-onprem-dns.ps1' -ForegroundColor Gray
     
 }

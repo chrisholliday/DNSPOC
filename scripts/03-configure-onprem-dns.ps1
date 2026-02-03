@@ -2,7 +2,7 @@
 
 <#
 .SYNOPSIS
-    Stage 2: Update on-prem VNet DNS to use the on-prem DNS server
+    Stage 3: Update on-prem VNet DNS to use the on-prem DNS server
 .DESCRIPTION
     After verifying the DNS server works, this updates the VNet DNS settings
     to point to the on-prem DNS server and restarts VMs to pick up the new settings.
@@ -39,7 +39,7 @@ function Write-Success {
 }
 
 try {
-    Write-Header 'STAGE 2: Configure On-Prem VNet DNS'
+    Write-Header 'STAGE 3: Configure On-Prem VNet DNS'
     
     # Verify Azure connection
     Write-Step 'Verifying Azure connection'
@@ -124,7 +124,7 @@ try {
     Write-Success 'VM restart initiated'
     Write-Host '    VMs will pick up new DNS settings on next DHCP renewal or reboot' -ForegroundColor Gray
     
-    Write-Header 'STAGE 2 COMPLETE'
+    Write-Header 'STAGE 3 COMPLETE'
     
     Write-Host "`nWhat was configured:" -ForegroundColor Cyan
     Write-Host "  ✓ On-prem VNet DNS set to $($config.DnsServerIP)" -ForegroundColor Gray

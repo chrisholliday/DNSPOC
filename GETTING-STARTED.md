@@ -22,14 +22,14 @@ Connect-AzAccount
 # 1. Generate SSH key (if you don't have one)
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/dnspoc
 
-# 2. Stage 0 - Deploy hub + spoke
+# 2. Stage 1 - Deploy hub + spoke
 $sshKey = Get-Content ~/.ssh/dnspoc.pub
 ./scripts/01-deploy-hub-spoke.ps1 -SSHPublicKey $sshKey
 
-# 3. Stage 1 - Deploy on-prem infrastructure (Azure default DNS)
+# 3. Stage 2 - Deploy on-prem infrastructure (Azure default DNS)
 ./scripts/02-deploy-onprem.ps1
 
-# 4. Stage 2 - Switch on-prem VNet DNS to the on-prem DNS server
+# 4. Stage 3 - Switch on-prem VNet DNS to the on-prem DNS server
 ./scripts/03-configure-onprem-dns.ps1
 
 # Optional: specify a different region (defaults to centralus)
@@ -43,18 +43,25 @@ $sshKey = Get-Content ~/.ssh/dnspoc.pub
 ```powershell
 # Get connection info and test instructions
 ./scripts/test.ps1
+```
 
+#### Option 1: Using Public IPs (Testing Only)
+
+```powershell
 # Add public IPs to VMs for SSH access
 ./scripts/add-public-ip.ps1 -VMName "dnspoc-vm-spoke-dev" -ResourceGroupName "dnspoc-rg-spoke"
 ./scripts/add-public-ip.ps1 -VMName "dnspoc-vm-onprem-client" -ResourceGroupName "dnspoc-rg-onprem"
 
-# Get public IPs
+# Get public IPs and SSH
 $spokeVm = Get-AzPublicIpAddress -ResourceGroupName "dnspoc-rg-spoke" -Name "dnspoc-vm-spoke-dev-pip"
-$onpremVm = Get-AzPublicIpAddress -ResourceGroupName "dnspoc-rg-onprem" -Name "dnspoc-vm-onprem-client-pip"
-
-# SSH to spoke VM and test DNS
 ssh -i ~/.ssh/dnspoc azureuser@$($spokeVm.IpAddress)
 ```
+
+#### Option 2: Using Azure Bastion (Recommended)
+
+1. Deploy Azure Bastion to the hub VNet (optional but recommended)
+2. In Azure Portal: Resource → VM → Connect → Bastion
+3. No public IPs or SSH keys needed in browser
 
 Inside the VM, run these tests:
 
@@ -102,9 +109,9 @@ nslookup microsoft.com
 
 ## 🔍 Key Files
 
-- `scripts/01-deploy-hub-spoke.ps1` - Stage 0: hub + spoke
-- `scripts/02-deploy-onprem.ps1` - Stage 1: on-prem deployment
-- `scripts/03-configure-onprem-dns.ps1` - Stage 2: switch VNet DNS
+- `scripts/01-deploy-hub-spoke.ps1` - Stage 1: hub + spoke
+- `scripts/02-deploy-onprem.ps1` - Stage 2: on-prem deployment
+- `scripts/03-configure-onprem-dns.ps1` - Stage 3: switch VNet DNS
 - `scripts/teardown.ps1` - Delete everything
 - `scripts/test.ps1` - Testing guide and connection info
 - `bicep/hub.bicep` - Hub infrastructure (resolver, DNS zones, forwarding)

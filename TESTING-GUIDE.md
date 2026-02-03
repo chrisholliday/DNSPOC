@@ -4,7 +4,7 @@ After deploying with the staged approach, use this guide to validate all DNS fun
 
 ## Quick Validation
 
-### Stage 1: On-Prem DNS Server Tests
+### Stage 2: On-Prem DNS Server Tests
 
 After `02-deploy-onprem.ps1` completes, verify the DNS server itself works:
 
@@ -35,7 +35,7 @@ az vm run-command invoke --resource-group dnspoc-rg-onprem --name dnspoc-vm-onpr
 - ✅ dnspoc-vm-spoke-dev.example.pvt → resolves to 10.1.0.10
 - ✅ [storage].blob.core.windows.net → resolves to 10.1.1.x (private endpoint IP)
 
-### Stage 2: On-Prem Client Tests
+### Stage 3: On-Prem Client Tests
 
 After `03-configure-onprem-dns.ps1` completes and client VM has restarted (2-3 min):
 
@@ -247,12 +247,12 @@ Remove-AzResourceGroup -Name 'dnspoc-rg-onprem' -Force
 
 ## Summary Checklist
 
-- [ ] Stage 1 deployment completes without errors
+- [ ] Stage 2 deployment completes without errors
 - [ ] DNS server has dnsmasq running
 - [ ] DNS server resolves internet domains (e.g., microsoft.com)
 - [ ] DNS server resolves example.pvt domains correctly
 - [ ] DNS server resolves storage account to private IP (10.1.1.x)
-- [ ] Stage 2 deployment completes
+- [ ] Stage 3 deployment completes
 - [ ] Client VM restarts and picks up new DNS settings
 - [ ] Client VM resolves all three categories (internet, local, private endpoints)
 - [ ] Logs show proper forwarding to Hub Resolver for privatelink zones
